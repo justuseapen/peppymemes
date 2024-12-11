@@ -2,10 +2,21 @@ import { create } from 'zustand';
 import { supabase } from '../config/supabase';
 import { AuthState } from '../types/auth';
 
+// Get the base URL for redirects
+const getBaseUrl = () => {
+  // Use window.location.origin in the browser
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  // Fallback for SSR (though we don't use it currently)
+  return process.env.VITE_PUBLIC_URL || 'https://peppymemes.com';
+};
+
 export const useAuthStore = create<AuthState & {
   signUp: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   setError: (error: string | null) => void;
 }>((set) => ({
   user: null,
@@ -18,12 +29,12 @@ export const useAuthStore = create<AuthState & {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${getBaseUrl()}/auth/callback`,
         },
       });
-      
+
       if (error) throw error;
-      
+
       set({ error: 'Please check your email to confirm your account.' });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to sign up' });
@@ -36,16 +47,16 @@ export const useAuthStore = create<AuthState & {
         email,
         password,
       });
-      
+
       if (error) throw error;
-      
-      set({ 
+
+      set({
         user: {
           id: data.user.id,
           email: data.user.email!,
           username: data.user.user_metadata.username,
         },
-        error: null 
+        error: null
       });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to sign in' });
@@ -59,6 +70,20 @@ export const useAuthStore = create<AuthState & {
       set({ user: null, error: null });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to sign out' });
+    }
+  },
+
+  resetPassword: async (email) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${getBaseUrl()}/auth/reset-password`,
+      });
+
+      if (error) throw error;
+
+      set({ error: 'Check your email for password reset instructions.' });
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Failed to send reset password email' });
     }
   },
 
