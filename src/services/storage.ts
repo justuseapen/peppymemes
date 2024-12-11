@@ -14,18 +14,18 @@ export class StorageError extends Error {
 }
 
 export async function uploadMeme(
-  file: File, 
-  metadata: Omit<Meme, 'id' | 'imageUrl' | 'creator'>
+  file: File,
+  metadata: Omit<Meme, 'id' | 'imageUrl'>
 ): Promise<Meme> {
   try {
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
+
     if (userError) {
       console.error('Auth error:', userError);
       throw new StorageError('Failed to get user information');
     }
-    
+
     if (!user) {
       throw new StorageError('Must be logged in to upload memes');
     }
@@ -42,8 +42,7 @@ export async function uploadMeme(
       title: metadata.title,
       tags: metadata.tags,
       imageUrl: publicUrl,
-      userId: user.id,
-      creator: user.email || 'Anonymous'
+      userId: user.id
     });
   } catch (error) {
     console.error('Error in uploadMeme:', error);

@@ -24,20 +24,15 @@ export function MemeCard({ meme }: MemeCardProps) {
             <button
               key={tag}
               onClick={() => toggleTag(tag)}
-              className={`flex items-center space-x-1 text-sm px-3 py-1 rounded-full ${
-                selectedTags.includes(tag)
-                  ? 'bg-green-500 text-white'
-                  : 'bg-green-100 text-green-700'
-              }`}
+              className={`flex items-center space-x-1 text-sm px-3 py-1 rounded-full ${selectedTags.includes(tag)
+                ? 'bg-green-500 text-white'
+                : 'bg-green-100 text-green-700'
+                }`}
             >
               <Tag size={14} />
               <span>{tag}</span>
             </button>
           ))}
-        </div>
-        <div className="mt-4 text-sm text-gray-500">
-          Posted by {meme.creator} on{' '}
-          {new Date(meme.createdAt).toLocaleDateString()}
         </div>
       </div>
     </div>

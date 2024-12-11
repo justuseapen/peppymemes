@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { checkDuplicate } from '../services/memeService';
 import { DuplicateAlert } from './DuplicateAlert';
 import { useMemeStore } from '../store/useMemeStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { Meme } from '../types/meme';
 import { uploadMeme } from '../services/storage';
 
@@ -17,6 +18,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { memes, loadMemes } = useMemeStore();
+  const { user } = useAuthStore();
 
   if (!isOpen) return null;
 
@@ -40,7 +42,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
       const form = e.target as HTMLFormElement;
       const file = form.image.files[0];
       const title = form.title.value;
-      
+
       if (!file || !title) {
         throw new Error('Please fill in all required fields');
       }
@@ -54,7 +56,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
       const metadata = {
         title,
         tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
-        creator: 'Anonymous', // In a real app, this would come from auth
+        creator: user?.username || 'Anonymous',
       };
 
       await uploadMeme(file, metadata);
@@ -79,8 +81,8 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
       <div className="bg-white rounded-lg w-full max-w-md">
         <div className="flex justify-between items-center p-4 border-b">
           <h2 className="text-xl font-semibold">Upload Meme</h2>
-          <button 
-            onClick={handleClose} 
+          <button
+            onClick={handleClose}
             className="text-gray-500 hover:text-gray-700"
             disabled={isUploading}
           >

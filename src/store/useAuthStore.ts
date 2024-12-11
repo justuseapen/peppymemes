@@ -9,7 +9,7 @@ const getBaseUrl = () => {
     return window.location.origin;
   }
   // Fallback for SSR (though we don't use it currently)
-  return process.env.VITE_PUBLIC_URL || 'https://peppymemes.com';
+  return import.meta.env.VITE_PUBLIC_URL || 'https://peppymemes.com';
 };
 
 export const useAuthStore = create<AuthState & {

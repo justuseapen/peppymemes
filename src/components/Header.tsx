@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ImagePlus, Search, LogIn, LogOut, User } from 'lucide-react';
+import { ImagePlus, Search, LogIn, LogOut, User, Settings } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useMemeStore } from '../store/useMemeStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { AuthModal } from './auth/AuthModal';
@@ -12,6 +13,7 @@ export function Header({ onUploadClick }: HeaderProps) {
   const { searchTerm, setSearchTerm } = useMemeStore();
   const { user, signOut } = useAuthStore();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   const handleUploadClick = () => {
     if (!user) {
@@ -21,12 +23,19 @@ export function Header({ onUploadClick }: HeaderProps) {
     }
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
   return (
     <header className="bg-green-500 shadow-lg">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold text-white">Peppy</h1>
+            <Link to="/" className="text-2xl font-bold text-white hover:text-green-100">
+              Peppy
+            </Link>
             <div className="relative">
               <input
                 type="text"
@@ -38,9 +47,9 @@ export function Header({ onUploadClick }: HeaderProps) {
               <Search className="absolute left-3 top-2.5 h-5 w-5 text-green-200" />
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-4">
-            <button 
+            <button
               onClick={handleUploadClick}
               className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
             >
@@ -50,12 +59,17 @@ export function Header({ onUploadClick }: HeaderProps) {
 
             {user ? (
               <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2 text-white">
-                  <User size={20} />
-                  <span>{user.email}</span>
-                </div>
+                <Link
+                  to="/profile"
+                  className="flex items-center space-x-2 text-white hover:text-green-100"
+                >
+                  <div className="flex items-center space-x-2 bg-green-600 px-3 py-2 rounded-lg">
+                    <User size={20} />
+                    <span>{user.username || 'Set display name'}</span>
+                  </div>
+                </Link>
                 <button
-                  onClick={() => signOut()}
+                  onClick={handleSignOut}
                   className="flex items-center space-x-2 text-white hover:text-green-200"
                 >
                   <LogOut size={20} />
