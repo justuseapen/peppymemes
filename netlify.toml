@@ -1,18 +1,16 @@
 [build]
-  command = "npm test && npm run build"
+  command = "npm run test:coverage && npm run codecov && npm run build"
   publish = "dist"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "18"
 
-[secrets]
-  SECRETS_SCAN_OMIT_KEYS = ["VITE_OPENAI_API_KEY"]
-
 [context.production]
-  command = "npm test && npm run build"
+  command = "npm run test:coverage && npm run codecov && npm run build"
 
 [context.deploy-preview]
-  command = "npm test && npm run build"
+  command = "npm run test:coverage && npm run codecov && npm run build"
 
 [context.branch-deploy]
-  command = "npm test && npm run build"
+  command = "npm run test:coverage && npm run codecov && npm run build"
