@@ -1,8 +1,8 @@
 export interface Meme {
-  id: string;
-  imageUrl: string;
+  id: number;
   title: string;
+  image_url: string;
   tags: string[];
-  createdAt: Date;
-  creator: string;
+  created_at: string;
+  user_id?: string;
 }

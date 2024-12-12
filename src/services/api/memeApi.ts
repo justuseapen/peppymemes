@@ -14,7 +14,6 @@ export interface MemeMetadata {
   tags: string[];
   imageUrl: string;
   userId: string;
-  creator: string;
 }
 
 export async function createMeme(metadata: MemeMetadata): Promise<Meme> {
@@ -26,8 +25,7 @@ export async function createMeme(metadata: MemeMetadata): Promise<Meme> {
         tags: metadata.tags,
         image_url: metadata.imageUrl,
         created_at: new Date().toISOString(),
-        user_id: metadata.userId,
-        creator: metadata.creator
+        user_id: metadata.userId
       }])
       .select('*')
       .single();
@@ -43,11 +41,11 @@ export async function createMeme(metadata: MemeMetadata): Promise<Meme> {
 
     return {
       id: memeData.id,
-      imageUrl: memeData.image_url,
       title: memeData.title,
+      image_url: memeData.image_url,
       tags: memeData.tags || [],
-      createdAt: new Date(memeData.created_at),
-      creator: memeData.creator,
+      created_at: memeData.created_at,
+      user_id: memeData.user_id
     };
   } catch (error) {
     console.error('Error in createMeme:', error);
@@ -76,11 +74,11 @@ export async function fetchMemesFromApi(): Promise<Meme[]> {
 
     return data.map(meme => ({
       id: meme.id,
-      imageUrl: meme.image_url,
       title: meme.title,
+      image_url: meme.image_url,
       tags: meme.tags || [],
-      createdAt: new Date(meme.created_at),
-      creator: meme.creator,
+      created_at: meme.created_at,
+      user_id: meme.user_id
     }));
   } catch (error) {
     console.error('Error in fetchMemesFromApi:', error);
