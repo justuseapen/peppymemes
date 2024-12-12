@@ -6,11 +6,14 @@
 
 The application requires the following environment variables:
 
+Frontend (VITE) Environment Variables:
 - `VITE_SUPABASE_URL`: Your Supabase project URL
 - `VITE_SUPABASE_ANON_KEY`: Your Supabase anonymous key
-- `VITE_OPENAI_API_KEY`: Your OpenAI API key (Note: This is temporarily exposed in the client-side bundle. Future updates will move OpenAI API calls to a backend service)
 - `VITE_PUBLIC_URL`: The public URL of your deployed application
+
+Backend (Netlify Functions) Environment Variables:
+- `OPENAI_API_KEY`: Your OpenAI API key (used by Netlify Functions)
 
 ### Deployment Notes
 
-Currently, the OpenAI API key is included in the client-side bundle. This is a temporary solution and should be replaced with a backend service in production. The `netlify.toml` configuration includes settings to prevent the build from failing due to exposed secrets, but this is not a long-term security solution.
+The application uses Netlify Functions to securely handle OpenAI API calls. The OpenAI API key is only used server-side and is never exposed to the client.

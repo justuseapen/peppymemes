@@ -6,6 +6,9 @@
 [build.environment]
   NODE_VERSION = "18"
 
+[secrets]
+  SECRETS_SCAN_OMIT_PATHS = ["dist/assets/*.js"]
+
 [context.production]
   command = "npm run test:coverage && npm run codecov && npm run build"
 
