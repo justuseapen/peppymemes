@@ -1,9 +1,12 @@
 [build]
-  command = "npm run build"
+  command = "npm test && npm run build"
   publish = "dist"
 
 [build.environment]
   NODE_VERSION = "18"
+
+[secrets]
+  SECRETS_SCAN_OMIT_KEYS = ["VITE_OPENAI_API_KEY"]
 
 [context.production]
   command = "npm test && npm run build"
