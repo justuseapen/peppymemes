@@ -30,6 +30,13 @@ global.ImageData = MockImageData as any;
 global.HTMLCanvasElement.prototype.getContext = mockGetContext as any;
 global.createImageBitmap = vi.fn() as unknown as typeof createImageBitmap;
 
+vi.mock('axios', () => ({
+  default: {
+    head: vi.fn(),
+    get: vi.fn()
+  }
+}));
+
 describe('imageUtils', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -63,7 +70,7 @@ describe('imageUtils', () => {
       const mockBitmap = { width: 100, height: 100 };
 
       vi.mocked(createImageBitmap).mockResolvedValue(mockBitmap as any);
-      mockGetContext.mockReturnValueOnce(null);
+      mockGetContext.mockReturnValue(undefined);
 
       await expect(getImageData(mockFile)).rejects.toThrow('Failed to get canvas context');
     });

@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 /**
  * Converts a File object to ImageData for comparison
  */
@@ -47,4 +49,28 @@ export function compareImageData(data1: ImageData, data2: ImageData): boolean {
 
   const similarity = matchingPixels / (totalPixels / 4);
   return similarity >= threshold;
+}
+
+export interface AnalysisResult {
+  success: boolean;
+  text?: string;
+  error?: string;
+}
+
+export async function analyzeImage(imageUrl: string): Promise<AnalysisResult> {
+  try {
+    // Verify the image URL is accessible
+    await axios.head(imageUrl);
+
+    return {
+      success: true,
+      text: 'Image URL verified'
+    };
+  } catch (error) {
+    console.error('Error analyzing image:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
 }

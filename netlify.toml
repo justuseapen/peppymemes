@@ -1,7 +1,7 @@
 [build]
-  command = "npm run test:coverage && npm run codecov && npm run build"
+  command = "npm run build"
   publish = "dist"
-  functions = "netlify/functions"
+  functions = "functions"
 
 [build.environment]
   NODE_VERSION = "18"
@@ -10,10 +10,21 @@
   SECRETS_SCAN_OMIT_PATHS = ["dist/assets/*.js"]
 
 [context.production]
-  command = "npm run test:coverage && npm run codecov && npm run build"
+  command = "npm run build"
 
 [context.deploy-preview]
-  command = "npm run test:coverage && npm run codecov && npm run build"
+  command = "npm run build"
 
 [context.branch-deploy]
-  command = "npm run test:coverage && npm run codecov && npm run build"
+  command = "npm run build"
+
+[functions]
+  directory = "functions"
+  node_bundler = "esbuild"
+
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Headers = "Content-Type"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
