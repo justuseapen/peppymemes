@@ -9,8 +9,15 @@ interface DuplicateAlertProps {
 
 export function DuplicateAlert({ duplicateOf, onClose }: DuplicateAlertProps) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg w-full max-w-md p-6">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      onClick={onClose}
+      data-testid="modal-backdrop"
+    >
+      <div
+        className="bg-white rounded-lg w-full max-w-md p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center space-x-3 text-red-600">
             <AlertTriangle size={24} />
@@ -20,20 +27,20 @@ export function DuplicateAlert({ duplicateOf, onClose }: DuplicateAlertProps) {
             <X size={20} />
           </button>
         </div>
-        
+
         <p className="text-gray-600 mb-4">
-          This meme has already been uploaded as "{duplicateOf.title}" by {duplicateOf.creator}. 
+          This meme has already been uploaded as "{duplicateOf.title}" by {duplicateOf.user_id}.
           Duplicate uploads are not allowed to maintain content quality.
         </p>
-        
+
         <div className="mb-4">
           <img
-            src={duplicateOf.imageUrl}
+            src={duplicateOf.image_url}
             alt="Existing meme"
             className="w-full h-48 object-cover rounded"
           />
         </div>
-        
+
         <button
           onClick={onClose}
           className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"

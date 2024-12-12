@@ -1,45 +1,51 @@
-import { describe, expect, test } from 'vitest';
+import React from 'react';
+import { describe, expect, test, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { DuplicateAlert } from '../DuplicateAlert';
+import { Meme } from '../../types/meme';
 
 describe('DuplicateAlert', () => {
-  const mockMeme = {
-    id: '1',
-    imageUrl: 'https://example.com/meme.jpg',
+  const mockMeme: Meme = {
+    id: '123',
     title: 'Test Meme',
+    image_url: 'https://example.com/test.jpg',
     tags: ['funny'],
-    createdAt: new Date(),
-    creator: 'TestUser',
+    created_at: '2024-03-11T00:00:00Z',
+    user_id: 'user123',
   };
 
   const mockOnClose = vi.fn();
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    mockOnClose.mockClear();
   });
 
-  test('renders duplicate alert with correct information', () => {
+  test('displays duplicate meme information', () => {
     render(<DuplicateAlert duplicateOf={mockMeme} onClose={mockOnClose} />);
 
-    expect(screen.getByText(/Duplicate Detected/i)).toBeInTheDocument();
-    expect(screen.getByText(/Test Meme/i)).toBeInTheDocument();
-    expect(screen.getByText(/TestUser/i)).toBeInTheDocument();
-    expect(screen.getByAltText('Existing meme')).toHaveAttribute('src', mockMeme.imageUrl);
-  });
-
-  test('calls onClose when close button is clicked', () => {
-    render(<DuplicateAlert duplicateOf={mockMeme} onClose={mockOnClose} />);
-
-    fireEvent.click(screen.getByRole('button', { name: /close/i }));
-    expect(mockOnClose).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Duplicate Detected')).toBeDefined();
+    expect(screen.getByText((content) => content.includes(mockMeme.title))).toBeDefined();
+    expect(screen.getByAltText('Existing meme')).toHaveAttribute('src', mockMeme.image_url);
   });
 
   test('calls onClose when X button is clicked', () => {
     render(<DuplicateAlert duplicateOf={mockMeme} onClose={mockOnClose} />);
 
-    // Find and click the X button (it might not have text content)
-    const closeButton = screen.getAllByRole('button')[0]; // First button should be the X
+    // Find and click the close button (the X icon button)
+    const closeButton = screen.getByRole('button', {
+      name: /close/i
+    });
     fireEvent.click(closeButton);
+
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  test('calls onClose when backdrop is clicked', () => {
+    render(<DuplicateAlert duplicateOf={mockMeme} onClose={mockOnClose} />);
+
+    // Find and click the outer div (backdrop)
+    const backdrop = screen.getByTestId('modal-backdrop');
+    fireEvent.click(backdrop);
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 });

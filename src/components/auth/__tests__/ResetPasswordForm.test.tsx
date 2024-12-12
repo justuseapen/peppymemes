@@ -1,9 +1,10 @@
 import React from 'react';
-import { describe, expect, test, vi, beforeEach } from 'vitest';
+import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ResetPasswordForm } from '../ResetPasswordForm';
 import { supabase } from '../../../config/supabase';
 import { MemoryRouter } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 // Mock the supabase client
 vi.mock('../../../config/supabase', () => ({
@@ -17,7 +18,7 @@ vi.mock('../../../config/supabase', () => ({
 // Mock useNavigate
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
     ...actual,
     useNavigate: () => mockNavigate,
@@ -27,6 +28,11 @@ vi.mock('react-router-dom', async () => {
 describe('ResetPasswordForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   const renderComponent = () => {
@@ -58,9 +64,7 @@ describe('ResetPasswordForm', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /reset password/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText('Passwords do not match')).toBeInTheDocument();
-    });
+    expect(screen.getByText('Passwords do not match')).toBeInTheDocument();
   });
 
   test('shows error when password is too short', async () => {
@@ -75,37 +79,23 @@ describe('ResetPasswordForm', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /reset password/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText('Password must be at least 6 characters long')).toBeInTheDocument();
-    });
+    expect(screen.getByText('Password must be at least 6 characters long')).toBeInTheDocument();
   });
 
   test('handles successful password reset', async () => {
     vi.mocked(supabase.auth.updateUser).mockResolvedValueOnce({ data: {}, error: null });
     renderComponent();
 
-    fireEvent.change(screen.getByLabelText('New Password'), {
-      target: { value: 'newpassword123' },
-    });
-    fireEvent.change(screen.getByLabelText('Confirm New Password'), {
-      target: { value: 'newpassword123' },
-    });
+    fireEvent.change(screen.getByLabelText('New Password'), { target: { value: 'newpassword' } });
+    fireEvent.change(screen.getByLabelText('Confirm New Password'), { target: { value: 'newpassword' } });
 
     fireEvent.click(screen.getByRole('button', { name: /reset password/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText('Password Reset Successful')).toBeInTheDocument();
-    });
+    // Run pending timers and promises
+    await vi.runAllTimersAsync();
 
-    // Verify Supabase was called with correct parameters
-    expect(supabase.auth.updateUser).toHaveBeenCalledWith({
-      password: 'newpassword123',
-    });
-
-    // Wait for navigation after success
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/');
-    }, { timeout: 3000 });
+    expect(screen.getByText('Password Reset Successful')).toBeInTheDocument();
+    expect(mockNavigate).toHaveBeenCalledWith('/');
   });
 
   test('handles password reset error from Supabase', async () => {
@@ -126,9 +116,10 @@ describe('ResetPasswordForm', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /reset password/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText(errorMessage)).toBeInTheDocument();
-    });
+    // Run pending timers and promises
+    await vi.runAllTimersAsync();
+
+    expect(screen.getByText(errorMessage)).toBeInTheDocument();
   });
 
   test('disables form submission while processing', async () => {

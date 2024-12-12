@@ -13,7 +13,7 @@ export function MemeCard({ meme }: MemeCardProps) {
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
       <img
-        src={meme.imageUrl}
+        src={meme.image_url}
         alt={meme.title}
         className="w-full h-64 object-cover"
       />

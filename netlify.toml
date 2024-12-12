@@ -1,0 +1,15 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[context.production]
+  command = "npm test && npm run build"
+
+[context.deploy-preview]
+  command = "npm test && npm run build"
+
+[context.branch-deploy]
+  command = "npm test && npm run build"

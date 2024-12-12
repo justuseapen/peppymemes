@@ -1,93 +1,50 @@
-// Constants for image processing
-const COMPARISON_THRESHOLD = 0.99; // 99% similarity threshold
-const MAX_DIMENSION = 100; // Max dimension for thumbnail comparison
-
-interface ImageDimensions {
-  width: number;
-  height: number;
-}
-
-// Get scaled dimensions maintaining aspect ratio
-function getScaledDimensions(width: number, height: number): ImageDimensions {
-  if (width <= MAX_DIMENSION && height <= MAX_DIMENSION) {
-    return { width, height };
-  }
-
-  const ratio = width / height;
-  if (width > height) {
-    return {
-      width: MAX_DIMENSION,
-      height: Math.round(MAX_DIMENSION / ratio),
-    };
-  }
-  return {
-    width: Math.round(MAX_DIMENSION * ratio),
-    height: MAX_DIMENSION,
-  };
-}
-
-// Create a thumbnail for faster comparison
-async function createThumbnail(img: HTMLImageElement): Promise<ImageData> {
-  const { width, height } = getScaledDimensions(img.width, img.height);
+/**
+ * Converts a File object to ImageData for comparison
+ */
+export async function getImageData(file: File): Promise<ImageData> {
+  const bitmap = await createImageBitmap(file);
   const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+
   const ctx = canvas.getContext('2d');
   if (!ctx) {
-    throw new Error('Could not get canvas context');
+    throw new Error('Failed to get canvas context');
   }
-  
-  ctx.drawImage(img, 0, 0, width, height);
-  return ctx.getImageData(0, 0, width, height);
+
+  ctx.drawImage(bitmap, 0, 0);
+  return ctx.getImageData(0, 0, bitmap.width, bitmap.height);
 }
 
-export async function getImageData(file: File): Promise<ImageData> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    
-    img.onload = async () => {
-      try {
-        const thumbnail = await createThumbnail(img);
-        resolve(thumbnail);
-      } catch (error) {
-        reject(error);
-      } finally {
-        URL.revokeObjectURL(url);
-      }
-    };
-    
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error('Failed to load image'));
-    };
-    
-    img.src = url;
-  });
-}
-
+/**
+ * Compares two ImageData objects to determine if they represent the same image
+ * Uses a simple pixel comparison with a threshold for minor differences
+ */
 export function compareImageData(data1: ImageData, data2: ImageData): boolean {
+  // If dimensions don't match, images are different
   if (data1.width !== data2.width || data1.height !== data2.height) {
     return false;
   }
 
   const pixels1 = data1.data;
   const pixels2 = data2.data;
+  const totalPixels = pixels1.length;
+  const threshold = 0.95; // 95% similarity required
   let matchingPixels = 0;
-  const totalPixels = pixels1.length / 4;
-  
-  for (let i = 0; i < pixels1.length; i += 4) {
-    // Compare RGB values (ignore alpha)
-    if (
-      Math.abs(pixels1[i] - pixels2[i]) <= 5 && // R
-      Math.abs(pixels1[i + 1] - pixels2[i + 1]) <= 5 && // G
-      Math.abs(pixels1[i + 2] - pixels2[i + 2]) <= 5 // B
-    ) {
+
+  // Compare each pixel's RGBA values
+  for (let i = 0; i < totalPixels; i += 4) {
+    const isPixelSimilar =
+      Math.abs(pixels1[i] - pixels2[i]) < 10 && // R
+      Math.abs(pixels1[i + 1] - pixels2[i + 1]) < 10 && // G
+      Math.abs(pixels1[i + 2] - pixels2[i + 2]) < 10; // B
+    // Ignore alpha channel for comparison
+
+    if (isPixelSimilar) {
       matchingPixels++;
     }
   }
-  
-  const similarity = matchingPixels / totalPixels;
-  return similarity >= COMPARISON_THRESHOLD;
+
+  const similarity = matchingPixels / (totalPixels / 4);
+  return similarity >= threshold;
 }

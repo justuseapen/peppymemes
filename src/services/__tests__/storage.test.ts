@@ -4,6 +4,9 @@ import { supabase } from '../../config/supabase';
 
 vi.mock('../../config/supabase', () => ({
   supabase: {
+    auth: {
+      getUser: vi.fn(() => ({ data: { user: { id: 'user-id' } }, error: null })),
+    },
     storage: {
       from: vi.fn(() => ({
         upload: vi.fn(),
@@ -11,9 +14,10 @@ vi.mock('../../config/supabase', () => ({
       })),
     },
     from: vi.fn(() => ({
-      insert: vi.fn(),
-      select: vi.fn(),
+      insert: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
       single: vi.fn(),
+      order: vi.fn().mockReturnThis(),
     })),
   },
 }));
@@ -48,7 +52,7 @@ describe('storage service', () => {
           title: 'Test Meme',
           tags: ['funny'],
           created_at: '2024-03-11T00:00:00Z',
-          creator: 'Test User',
+          user_id: 'user-id',
         },
         error: null,
       };
@@ -68,11 +72,11 @@ describe('storage service', () => {
 
       expect(result).toEqual({
         id: '123',
-        imageUrl: 'https://example.com/test.jpg',
+        image_url: 'https://example.com/test.jpg',
         title: 'Test Meme',
         tags: ['funny'],
-        createdAt: expect.any(Date),
-        creator: 'Test User',
+        created_at: '2024-03-11T00:00:00Z',
+        user_id: 'user-id',
       });
     });
 
@@ -90,33 +94,71 @@ describe('storage service', () => {
 
   describe('fetchMemes', () => {
     test('should fetch and transform memes', async () => {
-      const mockDbResponse = {
+      const mockResponse = {
         data: [{
           id: '123',
           image_url: 'https://example.com/test.jpg',
           title: 'Test Meme',
           tags: ['funny'],
           created_at: '2024-03-11T00:00:00Z',
-          creator: 'Test User',
+          user_id: 'user123',
         }],
         error: null,
       };
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue(mockDbResponse),
-      } as any);
+      const orderMock = vi.fn().mockResolvedValue(mockResponse);
+      const selectMock = vi.fn().mockReturnValue({ order: orderMock });
+      const fromMock = vi.fn().mockReturnValue({ select: selectMock });
+
+      vi.mocked(supabase.from).mockImplementation(fromMock);
 
       const result = await fetchMemes();
 
       expect(result).toEqual([{
         id: '123',
-        imageUrl: 'https://example.com/test.jpg',
+        image_url: 'https://example.com/test.jpg',
         title: 'Test Meme',
         tags: ['funny'],
-        createdAt: expect.any(Date),
-        creator: 'Test User',
+        created_at: '2024-03-11T00:00:00Z',
+        user_id: 'user123',
       }]);
+
+      expect(fromMock).toHaveBeenCalledWith('memes');
+      expect(selectMock).toHaveBeenCalledWith('*');
+      expect(orderMock).toHaveBeenCalledWith('created_at', { ascending: false });
+    });
+
+    test('should handle empty response', async () => {
+      const mockResponse = {
+        data: [],
+        error: null,
+      };
+
+      const orderMock = vi.fn().mockResolvedValue(mockResponse);
+      const selectMock = vi.fn().mockReturnValue({ order: orderMock });
+      const fromMock = vi.fn().mockReturnValue({ select: selectMock });
+
+      vi.mocked(supabase.from).mockImplementation(fromMock);
+
+      const result = await fetchMemes();
+      expect(result).toEqual([]);
+      expect(orderMock).toHaveBeenCalledWith('created_at', { ascending: false });
+    });
+
+    test('should handle error response', async () => {
+      const mockResponse = {
+        data: null,
+        error: new Error('Failed to fetch memes'),
+      };
+
+      const orderMock = vi.fn().mockResolvedValue(mockResponse);
+      const selectMock = vi.fn().mockReturnValue({ order: orderMock });
+      const fromMock = vi.fn().mockReturnValue({ select: selectMock });
+
+      vi.mocked(supabase.from).mockImplementation(fromMock);
+
+      await expect(fetchMemes()).rejects.toThrow('Failed to fetch memes');
+      expect(orderMock).toHaveBeenCalledWith('created_at', { ascending: false });
     });
   });
 });

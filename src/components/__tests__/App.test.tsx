@@ -1,8 +1,8 @@
 import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { App } from '../../App';
 import { MemoryRouter } from 'react-router-dom';
+import { App } from '../../App';
 
 // Mock the components
 vi.mock('../../components/Header', () => ({
@@ -82,8 +82,7 @@ describe('App', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText('Error Loading Memes')).toBeInTheDocument();
-    expect(screen.getByText('Test error message')).toBeInTheDocument();
+    expect(screen.getByText('Error Loading Memes: Test error message')).toBeInTheDocument();
 
     // Reset mock store
     mockStore.error = null;
