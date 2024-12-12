@@ -18,15 +18,20 @@ export const handler = async (event: APIGatewayEvent) => {
       throw new Error('Missing imageUrl in request body');
     }
 
-    // Update to use the current vision model
+    // Update to use the correct vision model
     const response = await openai.chat.completions.create({
-      model: "gpt-4-vision", // Updated from gpt-4-vision-preview
+      model: "gpt-4o-mini", // Updated to the correct model name
       messages: [
         {
           role: "user",
           content: [
             { type: "text", text: "What's in this image?" },
-            { type: "image_url", image_url: imageUrl }
+            {
+              type: "image_url", image_url: {
+                url: imageUrl,
+                detail: "low" // Add detail level for faster processing
+              }
+            }
           ],
         },
       ],
