@@ -37,19 +37,32 @@ export function MemeModal({ meme, isOpen, onClose }: MemeModalProps) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4 md:px-6"
       onClick={onClose}
+      style={{
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+      }}
     >
       <div
-        className="bg-white rounded-lg w-full max-w-4xl mx-4"
+        className="bg-white rounded-lg w-full max-w-4xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center p-3 border-b">
-          <h3 id="modal-title" className="text-lg font-semibold truncate pr-4">{meme.title}</h3>
+        {/* Safe area aware header */}
+        <div
+          className="flex justify-between items-center border-b sticky top-0 bg-white rounded-t-lg"
+          style={{
+            paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0.75rem))',
+            paddingLeft: 'max(0.75rem, env(safe-area-inset-left, 0.75rem))',
+            paddingRight: 'max(0.75rem, env(safe-area-inset-right, 0.75rem))',
+            paddingBottom: '0.75rem'
+          }}
+        >
+          <h3 id="modal-title" className="text-lg font-semibold truncate pr-4 leading-tight">{meme.title}</h3>
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="text-gray-500 hover:text-gray-700"
+            className="p-1 -m-1 text-gray-500 hover:text-gray-700 touch-manipulation"
           >
             <X size={20} />
           </button>
@@ -61,7 +74,10 @@ export function MemeModal({ meme, isOpen, onClose }: MemeModalProps) {
               src={meme.image_url}
               alt={meme.title}
               className="w-full object-contain rounded-lg"
-              style={{ maxHeight: '60vh' }}
+              style={{
+                maxHeight: '60vh',
+                WebkitTouchCallout: 'none'
+              }}
             />
           </div>
 
@@ -69,7 +85,7 @@ export function MemeModal({ meme, isOpen, onClose }: MemeModalProps) {
             {meme.tags.map((tag) => (
               <span
                 key={tag}
-                className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-sm"
+                className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-sm select-none"
               >
                 {tag}
               </span>
@@ -87,7 +103,7 @@ export function MemeModal({ meme, isOpen, onClose }: MemeModalProps) {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleCopy(shareUrl, 'link')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-sm"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-lg transition-colors text-sm touch-manipulation"
                   >
                     <Link size={16} />
                     Copy Link
@@ -99,7 +115,7 @@ export function MemeModal({ meme, isOpen, onClose }: MemeModalProps) {
 
                 <button
                   onClick={handleTruthShare}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors w-full md:w-auto justify-center text-sm"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg transition-colors w-full md:w-auto justify-center text-sm touch-manipulation"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -119,7 +135,7 @@ export function MemeModal({ meme, isOpen, onClose }: MemeModalProps) {
                   <span className="text-sm font-medium">Embed Code</span>
                   <button
                     onClick={() => handleCopy(embedCode, 'embed')}
-                    className="text-sm text-green-600 hover:text-green-700"
+                    className="text-sm text-green-600 hover:text-green-700 active:text-green-800 touch-manipulation"
                   >
                     Copy
                   </button>
@@ -127,7 +143,7 @@ export function MemeModal({ meme, isOpen, onClose }: MemeModalProps) {
                     <span className="text-green-600 text-sm">Copied!</span>
                   )}
                 </div>
-                <pre className="bg-gray-100 p-2 rounded-lg text-xs overflow-x-auto">
+                <pre className="bg-gray-100 p-2 rounded-lg text-xs overflow-x-auto select-all">
                   {embedCode}
                 </pre>
               </div>
