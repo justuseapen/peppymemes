@@ -6,7 +6,7 @@ import { Meme } from '../../types/meme';
 
 describe('DuplicateAlert', () => {
   const mockMeme: Meme = {
-    id: '123',
+    id: 123,
     title: 'Test Meme',
     image_url: 'https://example.com/test.jpg',
     tags: ['funny'],

@@ -1,7 +1,7 @@
 import { getImageData, compareImageData } from '../utils/imageUtils';
 
 export interface MemeMetadata {
-  id: string;
+  id: number;
   title: string;
   tags: string[];
   image_url: string;

@@ -5,6 +5,7 @@ import { ResetPasswordForm } from '../ResetPasswordForm';
 import { supabase } from '../../../config/supabase';
 import { MemoryRouter } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
+import { AuthError } from '@supabase/supabase-js';
 
 // Mock the supabase client
 vi.mock('../../../config/supabase', () => ({
@@ -83,7 +84,18 @@ describe('ResetPasswordForm', () => {
   });
 
   test('handles successful password reset', async () => {
-    vi.mocked(supabase.auth.updateUser).mockResolvedValueOnce({ data: {}, error: null });
+    vi.mocked(supabase.auth.updateUser).mockResolvedValueOnce({
+      data: {
+        user: {
+          id: '123',
+          app_metadata: {},
+          user_metadata: {},
+          aud: 'authenticated',
+          created_at: '2024-03-11T00:00:00Z'
+        }
+      },
+      error: null
+    });
     renderComponent();
 
     fireEvent.change(screen.getByLabelText('New Password'), { target: { value: 'newpassword' } });
@@ -101,8 +113,8 @@ describe('ResetPasswordForm', () => {
   test('handles password reset error from Supabase', async () => {
     const errorMessage = 'Failed to update password';
     vi.mocked(supabase.auth.updateUser).mockResolvedValueOnce({
-      data: {},
-      error: new Error(errorMessage),
+      data: { user: null },
+      error: new AuthError(errorMessage, 400, 'invalid_request')
     });
 
     renderComponent();

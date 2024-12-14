@@ -4,12 +4,10 @@ import * as matchers from '@testing-library/jest-dom/matchers';
 import { cleanup } from '@testing-library/react';
 import { configure } from '@testing-library/react';
 import { act } from 'react-dom/test-utils';
-import { fetch, Request, Response } from 'node-fetch';
+import nodeFetch, { Request, Response } from 'node-fetch';
 import 'openai/shims/node';
 
 declare global {
-  // eslint-disable-next-line no-var
-  var fetch: typeof fetch;
   // eslint-disable-next-line no-var
   var Request: typeof Request;
   // eslint-disable-next-line no-var
@@ -51,10 +49,7 @@ process.env.OPENAI_API_KEY = 'test-api-key';
 process.env.VITE_OPENAI_API_KEY = 'test-api-key';
 
 // Setup globals
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-global.fetch = fetch as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+global.fetch = nodeFetch as unknown as typeof fetch;
 global.Request = Request as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 global.Response = Response as any;
 global.IS_REACT_ACT_ENVIRONMENT = true;

@@ -62,7 +62,18 @@ describe('ProfilePage', () => {
   });
 
   test('handles successful profile update', async () => {
-    vi.mocked(supabase.auth.updateUser).mockResolvedValueOnce({ data: { user: {} }, error: null });
+    vi.mocked(supabase.auth.updateUser).mockResolvedValueOnce({
+      data: {
+        user: {
+          id: '123',
+          app_metadata: {},
+          user_metadata: {},
+          aud: 'authenticated',
+          created_at: '2024-03-11T00:00:00Z'
+        }
+      },
+      error: null
+    });
     renderComponent();
 
     const displayNameInput = screen.getByLabelText('Display Name');

@@ -31,7 +31,7 @@ describe('memeService', () => {
 
   const mockMemes: Meme[] = [
     {
-      id: '1',
+      id: 1,
       title: 'Test Meme 1',
       image_url: 'https://example.com/meme1.jpg',
       tags: ['funny'],
@@ -39,7 +39,7 @@ describe('memeService', () => {
       user_id: 'user1',
     },
     {
-      id: '2',
+      id: 2,
       title: 'Test Meme 2',
       image_url: 'https://example.com/meme2.jpg',
       tags: ['cats'],
@@ -61,7 +61,7 @@ describe('memeService', () => {
 
     expect(result.isDuplicate).toBe(true);
     expect(result.duplicateOf).toBeDefined();
-    expect(result.duplicateOf?.id).toBe('1');
+    expect(result.duplicateOf?.id).toBe(1);
   });
 
   test('should not detect duplicate for unique meme', async () => {
@@ -101,7 +101,7 @@ describe('memeService', () => {
     // Create array of 10 memes
     const manyMemes = Array(10).fill(null).map((_, i) => ({
       ...mockMemes[0],
-      id: i.toString(),
+      id: i,
     }));
 
     await checkDuplicate(mockFile, manyMemes);

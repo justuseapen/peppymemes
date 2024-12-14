@@ -32,8 +32,9 @@ describe('storage service', () => {
       const mockFile = new File([''], 'test.jpg', { type: 'image/jpeg' });
       const mockMetadata = {
         title: 'Test Meme',
-        tags: ['funny'],
-        creator: 'Test User',
+        tags: ['test'],
+        image_url: 'https://example.com/test.jpg',
+        created_at: new Date().toISOString()
       };
 
       const mockStorageResponse = {
@@ -50,7 +51,7 @@ describe('storage service', () => {
           id: '123',
           image_url: 'https://example.com/test.jpg',
           title: 'Test Meme',
-          tags: ['funny'],
+          tags: ['test'],
           created_at: '2024-03-11T00:00:00Z',
           user_id: 'user-id',
         },
@@ -74,7 +75,7 @@ describe('storage service', () => {
         id: '123',
         image_url: 'https://example.com/test.jpg',
         title: 'Test Meme',
-        tags: ['funny'],
+        tags: ['test'],
         created_at: '2024-03-11T00:00:00Z',
         user_id: 'user-id',
       });
@@ -87,7 +88,8 @@ describe('storage service', () => {
       await expect(uploadMeme(largeFile, {
         title: 'Test',
         tags: [],
-        creator: 'Test',
+        image_url: 'https://example.com/test.jpg',
+        created_at: new Date().toISOString()
       })).rejects.toThrow(StorageError);
     });
   });

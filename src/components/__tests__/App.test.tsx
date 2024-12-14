@@ -29,7 +29,7 @@ vi.mock('../../components/profile/ProfilePage', () => ({
 const mockStore = {
   loadMemes: vi.fn(),
   isLoading: false,
-  error: null,
+  error: null as string | null,
 };
 
 vi.mock('../../store/useMemeStore', () => ({
@@ -73,7 +73,8 @@ describe('App', () => {
   });
 
   test('renders error state when there is an error', () => {
-    mockStore.error = 'Test error message';
+    const mockError = 'Test error message';
+    mockStore.error = mockError;
     mockStore.isLoading = false;
 
     render(
