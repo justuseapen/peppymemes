@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import { checkDuplicate } from '../services/memeService';
 import { DuplicateAlert } from './DuplicateAlert';
 import { useMemeStore } from '../store/useMemeStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { Meme } from '../types/meme';
 import { uploadMeme } from '../services/storage';
-import { useImageAnalysis } from '../hooks/useImageAnalysis';
 import { supabase } from '../config/supabase';
+import { MemeUploadService } from '../services/memeUploadService';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -20,16 +19,10 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [duplicateOf, setDuplicateOf] = useState<Meme | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const { memes, loadMemes } = useMemeStore();
   const { user } = useAuthStore();
-  const { isAnalyzing, analysis, error: analysisError, analyzeImage } = useImageAnalysis();
-
-  useEffect(() => {
-    if (analysis) {
-      setTitle(analysis.suggestedTitle);
-      setTags(analysis.suggestedTags.join(', '));
-    }
-  }, [analysis]);
+  const uploadService = new MemeUploadService(memes);
 
   if (!isOpen) return null;
 
@@ -37,44 +30,29 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check for duplicates
-    const { isDuplicate, duplicateOf: duplicate } = await checkDuplicate(file, memes);
-    if (isDuplicate && duplicate) {
-      setDuplicateOf(duplicate);
-      e.target.value = '';
-      return;
-    }
-
     try {
-      // First upload to Supabase to get public URL
-      const fileExt = file.name.split('.').pop();
-      const fileName = `temp/${Math.random()}.${fileExt}`;
+      // Check for duplicates and get preview
+      const result = await uploadService.uploadMeme(file);
 
-      console.log('Uploading to Supabase for analysis:', fileName);
-      const { error: uploadError, data } = await supabase.storage
-        .from('memes')
-        .upload(fileName, file);
+      if (!result.success) {
+        if (result.isDuplicate && result.duplicateOf) {
+          setDuplicateOf(result.duplicateOf as Meme);
+          e.target.value = '';
+        } else {
+          setError(result.error || 'Failed to process image');
+        }
+        return;
+      }
 
-      if (uploadError) throw uploadError;
+      // Set preview URL
+      if (result.previewUrl) {
+        setPreviewUrl(result.previewUrl);
+      }
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('memes')
-        .getPublicUrl(fileName);
-
-      console.log('Got public URL for analysis:', publicUrl);
-
-      // Now analyze with OpenAI using the public URL
-      await analyzeImage(publicUrl);
-
-      // Clean up temporary upload after analysis
-      await supabase.storage
-        .from('memes')
-        .remove([fileName]);
-
+      setError(null);
     } catch (err) {
-      console.error('Failed during analysis process:', err);
-      setError('Failed to analyze image. Please try again.');
+      console.error('Failed during upload process:', err);
+      setError('Failed to process image. Please try again.');
     }
   };
 
@@ -89,23 +67,21 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
       }
 
       const form = e.target as HTMLFormElement;
-      const file = form.image.files[0];
-      const title = form.title.value;
+      const fileInput = form.querySelector('input[name="image"]') as HTMLInputElement;
+      const titleInput = form.querySelector('input[name="title"]') as HTMLInputElement;
+      const file = fileInput?.files?.[0];
+      const titleValue = titleInput?.value;
 
-      if (!file || !title) {
+      if (!file || !titleValue) {
         throw new Error('Please fill in all required fields');
       }
 
-      // Double-check for duplicates before upload
-      const { isDuplicate } = await checkDuplicate(file, memes);
-      if (isDuplicate) {
-        throw new Error('Duplicate meme detected');
-      }
-
       const metadata = {
-        title,
+        title: titleValue,
         tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
-        user_id: user.id
+        user_id: user.id,
+        image_url: '', // Will be set by uploadMeme
+        created_at: new Date().toISOString()
       };
 
       await uploadMeme(file, metadata);
@@ -124,6 +100,10 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     setTitle('');
     setDuplicateOf(null);
     setError(null);
+    if (previewUrl) {
+      uploadService.cleanup(previewUrl);
+      setPreviewUrl(null);
+    }
   };
 
   return (
@@ -167,6 +147,15 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
               onChange={handleFileChange}
               className="mt-1 block w-full"
             />
+            {previewUrl && (
+              <div className="mt-2">
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="max-h-48 rounded-lg object-contain"
+                />
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">
@@ -181,20 +170,12 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
             />
           </div>
-          {isAnalyzing && (
-            <div className="text-blue-600 text-sm">Analyzing image for suggestions...</div>
-          )}
-          {analysisError && (
-            <div className="text-orange-600 text-sm">
-              Failed to get suggestions, but you can still upload
-            </div>
-          )}
           {error && (
             <div className="text-red-600 text-sm">{error}</div>
           )}
           <button
             type="submit"
-            disabled={isUploading || isAnalyzing}
+            disabled={isUploading}
             className="w-full bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition-colors disabled:bg-green-300 disabled:cursor-not-allowed"
           >
             {isUploading ? 'Uploading...' : 'Upload'}

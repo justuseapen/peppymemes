@@ -13,17 +13,24 @@
   command = "npm run build"
 
 [context.deploy-preview]
-  command = "npm run build"
+  command = "vite"
 
 [context.branch-deploy]
-  command = "npm run build"
+  command = "vite"
+
+[dev]
+  command = "vite"
+  targetPort = 5173
+  port = 8888
+  framework = "#custom"
+  autoLaunch = true
 
 [functions]
   directory = "functions"
   node_bundler = "esbuild"
 
 [[headers]]
-  for = "/.netlify/functions/*"
+  for = "/*"
   [headers.values]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Headers = "Content-Type"

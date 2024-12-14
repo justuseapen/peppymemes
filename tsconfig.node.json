@@ -1,21 +1,15 @@
 {
   "compilerOptions": {
     "composite": true,
+    "skipLibCheck": true,
     "module": "ESNext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "types": [
-      "node",
-      "vitest"
-    ],
-    "outDir": "dist"
+      "node"
+    ]
   },
   "include": [
-    "vite.config.*",
-    "vitest.config.*",
-    "cypress.config.*",
-    "playwright.config.*",
-    "functions/**/*",
-    "src/**/*"
+    "vite.config.ts"
   ]
 }

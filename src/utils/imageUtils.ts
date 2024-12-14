@@ -59,8 +59,13 @@ export interface AnalysisResult {
 
 export async function analyzeImage(imageUrl: string): Promise<AnalysisResult> {
   try {
-    // Verify the image URL is accessible
-    await axios.head(imageUrl);
+    // Verify the image URL is accessible and returns an image
+    const response = await axios.head(imageUrl);
+    const contentType = response.headers['content-type'];
+
+    if (!contentType?.startsWith('image/')) {
+      throw new Error('URL does not point to a valid image');
+    }
 
     return {
       success: true,

@@ -27,3 +27,9 @@ dist-ssr
 coverage/
 
 .env
+.env.local
+.env.development
+.env.production
+
+# Local Netlify folder
+.netlify

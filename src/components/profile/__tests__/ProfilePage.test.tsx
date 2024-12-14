@@ -1,15 +1,7 @@
 import React from 'react';
 import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-
-// Mock the supabase client
-vi.mock('../../../config/supabase', () => ({
-  supabase: {
-    auth: {
-      updateUser: vi.fn(),
-    },
-  },
-}));
+import { supabase } from '../../../config/supabase';
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
@@ -29,9 +21,8 @@ const mockUser = {
   username: 'testuser',
 };
 
-// Create a separate mock for useAuthStore
 const mockUseAuthStore = vi.fn(() => ({
-  user: mockUser,
+  user: mockUser as { id: string; email: string; username: string; } | null,
   setError: mockSetError,
 }));
 
@@ -39,15 +30,21 @@ vi.mock('../../../store/useAuthStore', () => ({
   useAuthStore: () => mockUseAuthStore(),
 }));
 
-// Import supabase after mocking
-import { supabase } from '../../../config/supabase';
+// Mock the supabase client
+vi.mock('../../../config/supabase', () => ({
+  supabase: {
+    auth: {
+      updateUser: vi.fn(),
+    },
+  },
+}));
+
 // Now import the component
 import { ProfilePage } from '../ProfilePage';
 
 describe('ProfilePage', () => {
   beforeEach(() => {
-    vi.resetModules();
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mockUseAuthStore.mockReturnValue({
       user: mockUser,
       setError: mockSetError,
@@ -65,7 +62,7 @@ describe('ProfilePage', () => {
   });
 
   test('handles successful profile update', async () => {
-    vi.mocked(supabase.auth.updateUser).mockResolvedValueOnce({ data: {}, error: null });
+    vi.mocked(supabase.auth.updateUser).mockResolvedValueOnce({ data: { user: {} }, error: null });
     renderComponent();
 
     const displayNameInput = screen.getByLabelText('Display Name');
@@ -96,7 +93,8 @@ describe('ProfilePage', () => {
     expect(screen.getByRole('button', { name: /saving/i })).toBeDisabled();
   });
 
-  test('redirects to home if user is not authenticated', () => {
+  test('redirects to home if user is not authenticated', async () => {
+    console.log('Test started: redirect to home if user is not authenticated');
     mockUseAuthStore.mockReturnValueOnce({
       user: null,
       setError: mockSetError,
@@ -104,6 +102,10 @@ describe('ProfilePage', () => {
 
     renderComponent();
 
-    expect(mockNavigate).toHaveBeenCalledWith('/');
+    await waitFor(() => {
+      console.log('Checking if navigate was called with /');
+      expect(mockNavigate).toHaveBeenCalledWith('/');
+    });
+    console.log('Test completed: redirect to home if user is not authenticated');
   });
 });

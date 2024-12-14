@@ -11,14 +11,14 @@ export function ProfilePage() {
   const [successMessage, setSuccessMessage] = useState('');
   const navigate = useNavigate();
 
+  if (!user) {
+    navigate('/');
+    return null;
+  }
+
   useEffect(() => {
-    if (!user) {
-      navigate('/');
-      return;
-    }
-    // Load current display name
     setDisplayName(user.username || '');
-  }, [user, navigate]);
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,8 +49,6 @@ export function ProfilePage() {
       setIsSubmitting(false);
     }
   };
-
-  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-gray-100 py-12">

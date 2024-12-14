@@ -70,7 +70,7 @@ describe('imageUtils', () => {
       const mockBitmap = { width: 100, height: 100 };
 
       vi.mocked(createImageBitmap).mockResolvedValue(mockBitmap as any);
-      mockGetContext.mockReturnValue(undefined);
+      mockGetContext.mockReturnValue(null as unknown as CanvasRenderingContext2D);
 
       await expect(getImageData(mockFile)).rejects.toThrow('Failed to get canvas context');
     });

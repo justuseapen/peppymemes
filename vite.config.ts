@@ -14,4 +14,13 @@ export default defineConfig({
       '@': '/src',
     },
   },
+  server: {
+    proxy: {
+      '/.netlify/functions': {
+        target: 'http://localhost:9999',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/\.netlify\/functions/, '')
+      }
+    }
+  }
 }) as UserConfig & { test: VitestUserConfig['test'] };
