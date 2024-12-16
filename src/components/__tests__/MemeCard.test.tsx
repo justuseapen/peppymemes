@@ -1,34 +1,59 @@
-import { vi, describe, it, expect } from 'vitest';
-import { render, screen, fireEvent } from '../../test/testUtils';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, act } from '../../test/testUtils';
 import { MemeCard } from '../MemeCard';
+import { Meme } from '../../types/meme';
 import { useMemeStore } from '../../store/useMemeStore';
 
-// Mock useMemeStore
-vi.mock('../../store/useMemeStore', () => ({
-  useMemeStore: vi.fn()
-}));
-
-const mockMeme = {
+const mockMeme: Meme = {
   id: '123',
   title: 'Test Meme',
   image_url: 'https://example.com/meme.jpg',
+  created_at: '2022-12-31T00:00:00Z',
   tags: ['funny', 'test'],
-  created_at: '2023-01-01',
-  view_count: 0,
+  is_favorited: false,
   favorite_count: 0,
+  view_count: 0,
   share_count: 0,
   download_count: 0
 };
 
+// Mock the store before tests
+vi.mock('../../store/useMemeStore');
+
 describe('MemeCard', () => {
   beforeEach(() => {
-    (useMemeStore as any).mockReturnValue({
-      toggleTag: vi.fn(),
-      selectedTags: []
-    });
+    vi.clearAllMocks();
   });
 
+  const setupMockStore = (overrides = {}) => {
+    const defaultStore = {
+      toggleTag: vi.fn(),
+      updateMemeIsFavorited: vi.fn(),
+      favoriteIds: new Set<string>(),
+      memes: [],
+      isLoading: false,
+      error: null,
+      searchTerm: '',
+      selectedTags: [],
+      loadMemes: vi.fn(),
+      setSearchTerm: vi.fn(),
+      initializeFavorites: vi.fn()
+    };
+
+    const store = { ...defaultStore, ...overrides };
+
+    vi.mocked(useMemeStore).mockImplementation((selector) => {
+      if (typeof selector === 'function') {
+        return selector(store);
+      }
+      return store;
+    });
+
+    return store;
+  };
+
   it('renders meme content correctly', () => {
+    setupMockStore();
     render(<MemeCard meme={mockMeme} />);
     expect(screen.getByText('Test Meme')).toBeInTheDocument();
     expect(screen.getByAltText('Test Meme')).toBeInTheDocument();
@@ -36,34 +61,32 @@ describe('MemeCard', () => {
     expect(screen.getByText('test')).toBeInTheDocument();
   });
 
-  it('opens modal when clicking the meme', () => {
+  it('navigates to meme page when clicking the meme', () => {
+    setupMockStore();
     render(<MemeCard meme={mockMeme} />);
-    fireEvent.click(screen.getByText('Test Meme'));
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    const links = screen.getAllByRole('link', { name: 'Test Meme' });
+    expect(links[0]).toHaveAttribute('href', '/meme/123');
   });
 
-  it('closes modal when clicking close button', () => {
+  it('handles tag clicks', async () => {
+    const mockStore = setupMockStore();
     render(<MemeCard meme={mockMeme} />);
-    fireEvent.click(screen.getByText('Test Meme'));
-    fireEvent.click(screen.getByLabelText('Close modal'));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    const tagButton = screen.getByText('funny');
+    await act(async () => {
+      fireEvent.click(tagButton);
+    });
+    expect(mockStore.toggleTag).toHaveBeenCalledWith('funny');
   });
 
-  it('toggles tag when clicking a tag', () => {
-    const toggleTag = vi.fn();
-    (useMemeStore as any).mockReturnValue({
-      toggleTag,
-      selectedTags: []
+  it('prevents navigation when clicking a tag', async () => {
+    const mockStore = setupMockStore();
+    render(<MemeCard meme={mockMeme} />);
+    const tagButton = screen.getByText('funny');
+
+    await act(async () => {
+      fireEvent.click(tagButton);
     });
 
-    render(<MemeCard meme={mockMeme} />);
-    fireEvent.click(screen.getByText('funny'));
-    expect(toggleTag).toHaveBeenCalledWith('funny');
-  });
-
-  it('prevents modal from opening when clicking a tag', () => {
-    render(<MemeCard meme={mockMeme} />);
-    fireEvent.click(screen.getByText('funny'));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(mockStore.toggleTag).toHaveBeenCalledWith('funny');
   });
 });

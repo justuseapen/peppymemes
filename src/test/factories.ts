@@ -12,6 +12,7 @@ export function createMockMeme(overrides?: Partial<Meme>): Meme {
     view_count: 0,
     share_count: 0,
     download_count: 0,
+    is_favorited: false,
     ...overrides
   };
 }

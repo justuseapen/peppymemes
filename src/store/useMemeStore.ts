@@ -1,49 +1,100 @@
 import { create } from 'zustand';
 import { Meme } from '../types/meme';
-import { fetchMemes } from '../services/storage';
+import { getMemes } from '../services/memeService';
+import { SortOption } from './useSortStore';
+import { favoriteService } from '../services/favoriteService';
 
-interface MemeStore {
+interface MemeState {
   memes: Meme[];
-  searchTerm: string;
-  selectedTags: string[];
   isLoading: boolean;
   error: string | null;
-  addMeme: (meme: Meme) => void;
+  searchTerm: string;
+  selectedTags: string[];
+  favoriteIds: Set<string>;
+  loadMemes: (sortBy?: SortOption) => Promise<void>;
   setSearchTerm: (term: string) => void;
   toggleTag: (tag: string) => void;
-  loadMemes: () => Promise<void>;
-  setError: (error: string | null) => void;
+  updateMemeIsFavorited: (memeId: string, isFavorited: boolean) => void;
+  initializeFavorites: () => Promise<void>;
 }
 
-export const useMemeStore = create<MemeStore>((set, get) => ({
+export const useMemeStore = create<MemeState>((set, get) => ({
   memes: [],
-  searchTerm: '',
-  selectedTags: [],
   isLoading: false,
   error: null,
-  addMeme: (meme) => set((state) => ({ memes: [meme, ...state.memes] })),
-  setSearchTerm: (term) => set({ searchTerm: term }),
-  toggleTag: (tag) =>
-    set((state) => ({
-      selectedTags: state.selectedTags.includes(tag)
-        ? state.selectedTags.filter((t) => t !== tag)
-        : [...state.selectedTags, tag],
-    })),
-  loadMemes: async () => {
+  searchTerm: '',
+  selectedTags: [],
+  favoriteIds: new Set(),
+
+  loadMemes: async (sortBy = 'newest') => {
+    console.log('Starting to load memes...');
     set({ isLoading: true, error: null });
     try {
-      console.log('Loading memes...');
-      const memes = await fetchMemes();
-      console.log('Memes loaded:', memes);
-      set({ memes, isLoading: false });
+      const memes = await getMemes(sortBy);
+      console.log('Successfully loaded memes:', memes.length);
+
+      // Update favoriteIds based on meme.is_favorited
+      const favoriteIds = new Set(memes.filter(m => m.is_favorited).map(m => m.id));
+
+      set({
+        memes,
+        favoriteIds,
+        isLoading: false
+      });
     } catch (error) {
-      console.error('Error loading memes:', error);
-      set({ 
+      console.error('Error in loadMemes:', error);
+      set({
         error: error instanceof Error ? error.message : 'Failed to load memes',
-        isLoading: false,
-        memes: [] // Clear memes on error to avoid showing stale data
+        isLoading: false
       });
     }
   },
-  setError: (error) => set({ error }),
+
+  updateMemeIsFavorited: (memeId: string, isFavorited: boolean) => {
+    set(state => {
+      const newFavoriteIds = new Set(state.favoriteIds);
+      if (isFavorited) {
+        newFavoriteIds.add(memeId);
+      } else {
+        newFavoriteIds.delete(memeId);
+      }
+
+      return {
+        memes: state.memes.map(meme =>
+          meme.id === memeId
+            ? { ...meme, is_favorited: isFavorited }
+            : meme
+        ),
+        favoriteIds: newFavoriteIds
+      };
+    });
+  },
+
+  initializeFavorites: async () => {
+    try {
+      const favoriteIds = await favoriteService.getFavorites();
+      set(state => ({
+        favoriteIds: new Set(favoriteIds),
+        memes: state.memes.map(meme => ({
+          ...meme,
+          is_favorited: favoriteIds.includes(meme.id)
+        }))
+      }));
+    } catch (error) {
+      console.error('Error initializing favorites:', error);
+      // Don't update state on error
+    }
+  },
+
+  setSearchTerm: (term) => set({ searchTerm: term }),
+
+  toggleTag: (tag) => {
+    const { selectedTags } = get();
+    const isSelected = selectedTags.includes(tag);
+    set({
+      selectedTags: isSelected
+        ? selectedTags.filter(t => t !== tag)
+        : [...selectedTags, tag]
+    });
+  }
 }));

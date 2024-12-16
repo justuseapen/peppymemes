@@ -3,6 +3,7 @@ import { X, Share2, Link, Code, Eye, Download, Heart } from 'lucide-react';
 import { Meme, MemeStats, StatType } from '../types/meme';
 import { FavoriteButton } from './FavoriteButton';
 import { statsService } from '../services/statsService';
+import { downloadService } from '../services/downloadService';
 
 interface MemeModalProps {
   meme: Meme;
@@ -25,6 +26,8 @@ export function MemeModal({ meme, isOpen, onClose }: MemeModalProps) {
     share_count: meme.share_count ?? 0,
     download_count: meme.download_count ?? 0
   });
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -76,19 +79,15 @@ export function MemeModal({ meme, isOpen, onClose }: MemeModalProps) {
 
   const handleDownload = async () => {
     try {
-      const response = await fetch(meme.image_url);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${meme.title}.jpg`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-      await statsService.incrementStat(meme.id, 'download');
+      setIsDownloading(true);
+      const result = await downloadService.downloadMeme(meme);
+      if (!result.success) {
+        setError(result.error || 'Failed to download meme');
+      }
     } catch (err) {
-      console.error('Failed to download:', err);
+      setError(err instanceof Error ? err.message : 'Failed to download meme');
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -122,7 +121,7 @@ export function MemeModal({ meme, isOpen, onClose }: MemeModalProps) {
           <div className="flex items-center gap-2">
             <FavoriteButton
               memeId={meme.id}
-              initialFavorited={meme.is_favorited}
+              isFavorited={meme.is_favorited}
               className="touch-manipulation"
             />
             <button
@@ -198,11 +197,25 @@ export function MemeModal({ meme, isOpen, onClose }: MemeModalProps) {
                 <div className="flex gap-2">
                   <button
                     onClick={handleDownload}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-lg transition-colors text-sm touch-manipulation"
+                    disabled={isDownloading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-lg transition-colors text-sm touch-manipulation disabled:bg-gray-100 disabled:opacity-50"
+                    title={error || undefined}
                   >
-                    <Download size={16} />
-                    Download
+                    {isDownloading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-800" />
+                        <span>Downloading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download size={16} />
+                        <span>Download</span>
+                      </>
+                    )}
                   </button>
+                  {error && (
+                    <span className="text-red-600 text-sm">{error}</span>
+                  )}
 
                   <button
                     onClick={handleTruthShare}

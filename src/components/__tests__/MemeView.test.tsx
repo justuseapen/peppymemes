@@ -1,42 +1,36 @@
-import { vi, describe, it, expect } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '../../test/testUtils';
 import { MemeView } from '../MemeView';
 import { supabase } from '../../config/supabase';
 import { useMemeStore } from '../../store/useMemeStore';
+import { createMockMeme } from '../../test/factories';
 
-// Mock useMemeStore
-vi.mock('../../store/useMemeStore', () => ({
-  useMemeStore: vi.fn()
-}));
-
-const mockMeme = {
+const mockMeme = createMockMeme({
   id: '123',
   title: 'Test Meme',
   image_url: 'https://example.com/meme.jpg',
-  tags: ['funny', 'test'],
-  created_at: '2023-01-01',
-  view_count: 0,
-  favorite_count: 0,
-  share_count: 0,
-  download_count: 0
-};
+  tags: ['funny', 'test']
+});
 
 describe('MemeView', () => {
   beforeEach(() => {
-    // Reset mocks
     vi.clearAllMocks();
 
-    // Setup default store state
+    // Mock meme store
     (useMemeStore as any).mockReturnValue({
       memes: [],
-      isLoading: false
+      isLoading: false,
+      error: null,
+      favoriteIds: new Set()
     });
   });
 
   it('renders loading state initially', () => {
     (useMemeStore as any).mockReturnValue({
       memes: [],
-      isLoading: true
+      isLoading: true,
+      error: null,
+      favoriteIds: new Set()
     });
 
     render(<MemeView />);
@@ -56,9 +50,11 @@ describe('MemeView', () => {
     render(<MemeView />);
 
     await waitFor(() => {
-      expect(screen.getByText('Test Meme')).toBeInTheDocument();
-      expect(screen.getByAltText('Test Meme')).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
+
+    expect(screen.getByText('Test Meme')).toBeInTheDocument();
+    expect(screen.getByAltText('Test Meme')).toBeInTheDocument();
   });
 
   it('renders error state when meme not found', async () => {

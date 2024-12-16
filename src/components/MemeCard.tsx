@@ -1,65 +1,65 @@
-import React, { useState } from 'react';
-import { Tag } from 'lucide-react';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { Meme } from '../types/meme';
-import { useMemeStore } from '../store/useMemeStore';
-import { MemeModal } from './MemeModal';
 import { FavoriteButton } from './FavoriteButton';
+import { formatDate } from '../utils/dateUtils';
+import { useAuthStore } from '../store/useAuthStore';
+import { useMemeStore } from '../store/useMemeStore';
 
 interface MemeCardProps {
   meme: Meme;
 }
 
 export function MemeCard({ meme }: MemeCardProps) {
-  const { toggleTag, selectedTags } = useMemeStore();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const toggleTag = useMemeStore(state => state.toggleTag);
+
+  const handleTagClick = (tag: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    toggleTag(tag);
+  };
 
   return (
-    <>
-      <div className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer transition-transform hover:scale-[1.02]">
-        <div className="relative" onClick={() => setIsModalOpen(true)}>
-          <img
-            src={meme.image_url}
-            alt={meme.title}
-            className="w-full h-64 object-cover"
+    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <Link to={`/meme/${meme.id}`} className="block relative" data-discover="true">
+        <img
+          src={meme.image_url}
+          alt={meme.title}
+          className="w-full h-48 object-cover"
+          loading="lazy"
+        />
+      </Link>
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-2">
+          <Link
+            to={`/meme/${meme.id}`}
+            className="text-lg font-semibold text-gray-900 hover:text-green-600 truncate"
+            data-discover="true"
+          >
+            {meme.title}
+          </Link>
+          <FavoriteButton
+            memeId={meme.id}
+            isFavorited={meme.is_favorited}
+            requireAuth
           />
-          <div className="absolute top-2 right-2">
-            <FavoriteButton
-              memeId={meme.id}
-              initialFavorited={meme.is_favorited}
-              className="bg-white/80 backdrop-blur-sm p-2 rounded-full hover:bg-white"
-            />
-          </div>
-          <div className="p-4">
-            <h3 className="text-lg font-semibold mb-2">{meme.title}</h3>
-          </div>
         </div>
-        <div className="px-4 pb-4">
-          <div className="flex flex-wrap gap-2">
-            {meme.tags.map((tag) => (
+        <div className="text-sm text-gray-600">
+          {formatDate(meme.created_at)}
+        </div>
+        {meme.tags && meme.tags.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {meme.tags.map(tag => (
               <button
                 key={tag}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleTag(tag);
-                }}
-                className={`flex items-center space-x-1 text-sm px-3 py-1 rounded-full ${selectedTags.includes(tag)
-                  ? 'bg-green-500 text-white'
-                  : 'bg-green-100 text-green-700'
-                  }`}
+                onClick={(e) => handleTagClick(tag, e)}
+                className="text-sm bg-gray-100 hover:bg-gray-200 rounded-full px-3 py-1"
               >
-                <Tag size={14} />
-                <span>{tag}</span>
+                {tag}
               </button>
             ))}
           </div>
-        </div>
+        )}
       </div>
-
-      <MemeModal
-        meme={meme}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
-    </>
+    </div>
   );
 }

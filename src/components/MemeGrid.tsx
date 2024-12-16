@@ -1,61 +1,67 @@
 import React from 'react';
 import { useMemeStore } from '../store/useMemeStore';
+import { useSortStore } from '../store/useSortStore';
 import { MemeCard } from './MemeCard';
 import { Meme } from '../types/meme';
+import { SortMenu } from './SortMenu';
 
-function calculateRelevanceScore(meme: Meme, searchTerms: string[]): number {
-  if (!searchTerms.length) return 1;
-
-  let score = 0;
-  const titleLower = meme.title.toLowerCase();
-  const tagsLower = meme.tags.map(tag => tag.toLowerCase());
-
-  for (const term of searchTerms) {
-    // Title matches (weighted higher)
-    if (titleLower.includes(term)) {
-      score += 3;
-    }
-    // Exact title word matches (weighted highest)
-    if (titleLower.split(/\s+/).includes(term)) {
-      score += 5;
-    }
-    // Tag matches
-    if (tagsLower.some(tag => tag.includes(term))) {
-      score += 2;
-    }
-    // Exact tag matches (weighted higher)
-    if (tagsLower.includes(term)) {
-      score += 4;
-    }
+function sortMemes(memes: Meme[], sortBy: string): Meme[] {
+  switch (sortBy) {
+    case 'oldest':
+      return [...memes].sort((a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+    case 'newest':
+      return [...memes].sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    case 'most_viewed':
+      return [...memes].sort((a, b) => b.view_count - a.view_count);
+    case 'most_favorited':
+      return [...memes].sort((a, b) => b.favorite_count - a.favorite_count);
+    case 'most_downloaded':
+      return [...memes].sort((a, b) => b.download_count - a.download_count);
+    default:
+      return memes;
   }
-
-  return score;
 }
 
 export function MemeGrid() {
-  const { memes, searchTerm, selectedTags } = useMemeStore();
+  const { memes, searchTerm, selectedTags, isLoading } = useMemeStore();
+  const { sortBy } = useSortStore();
 
-  // Tokenize search term and filter out empty strings
-  const searchTerms = searchTerm.toLowerCase().split(/\s+/).filter(Boolean);
+  // Filter and sort memes
+  const filteredMemes = memes.filter(meme => {
+    const matchesSearch = !searchTerm ||
+      meme.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      meme.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  const filteredAndScoredMemes = memes
-    .map(meme => ({
-      meme,
-      score: calculateRelevanceScore(meme, searchTerms)
-    }))
-    .filter(({ meme, score }) => {
-      const hasSearchMatch = !searchTerms.length || score > 0;
-      const hasTagMatch = selectedTags.length === 0 ||
-        selectedTags.some(tag => meme.tags.includes(tag));
-      return hasSearchMatch && hasTagMatch;
-    })
-    .sort((a, b) => b.score - a.score);
+    const matchesTags = selectedTags.length === 0 ||
+      selectedTags.some(tag => meme.tags.includes(tag));
+
+    return matchesSearch && matchesTags;
+  });
+
+  const sortedMemes = sortMemes(filteredMemes, sortBy);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-      {filteredAndScoredMemes.map(({ meme }) => (
-        <MemeCard key={meme.id} meme={meme} />
-      ))}
+    <div className="space-y-6 pt-6">
+      <div className="flex justify-end px-6 mb-6">
+        <SortMenu />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-6">
+        {sortedMemes.map(meme => (
+          <MemeCard key={meme.id} meme={meme} />
+        ))}
+      </div>
     </div>
   );
 }

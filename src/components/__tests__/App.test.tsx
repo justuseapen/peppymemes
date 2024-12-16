@@ -1,109 +1,84 @@
-import React from 'react';
-import { describe, expect, test, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '../../test/testUtils';
 import { App } from '../../App';
-
-// Mock the components
-vi.mock('../../components/Header', () => ({
-  Header: () => <div data-testid="mock-header">Header</div>,
-}));
-
-vi.mock('../../components/MemeGrid', () => ({
-  MemeGrid: () => <div data-testid="mock-meme-grid">MemeGrid</div>,
-}));
-
-vi.mock('../../components/UploadModal', () => ({
-  UploadModal: () => <div data-testid="mock-upload-modal">UploadModal</div>,
-}));
-
-vi.mock('../../components/auth/ResetPasswordForm', () => ({
-  ResetPasswordForm: () => <div data-testid="mock-reset-password-form">ResetPasswordForm</div>,
-}));
-
-vi.mock('../../components/profile/ProfilePage', () => ({
-  ProfilePage: () => <div data-testid="mock-profile-page">ProfilePage</div>,
-}));
-
-// Mock the store
-const mockStore = {
-  loadMemes: vi.fn(),
-  isLoading: false,
-  error: null as string | null,
-};
-
-vi.mock('../../store/useMemeStore', () => ({
-  useMemeStore: () => mockStore,
-}));
+import { useMemeStore } from '../../store/useMemeStore';
+import { useAppInitialization } from '../../hooks/useAppInitialization';
 
 describe('App', () => {
-  test('renders main content on root path', () => {
-    render(
-      <MemoryRouter>
-        <App />
-      </MemoryRouter>
-    );
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Default to initialized state
+    vi.mocked(useAppInitialization).mockReturnValue({
+      isInitialized: true,
+      error: null
+    });
+  });
 
+  it('renders main content on root path', async () => {
+    render(<App />, { initialEntries: ['/'] });
     expect(screen.getByTestId('mock-header')).toBeInTheDocument();
     expect(screen.getByTestId('mock-meme-grid')).toBeInTheDocument();
   });
 
-  test('renders reset password form on /auth/reset-password path', () => {
-    render(
-      <MemoryRouter initialEntries={['/auth/reset-password']}>
-        <App />
-      </MemoryRouter>
-    );
-
+  it('renders reset password form on /auth/reset-password path', async () => {
+    render(<App />, { initialEntries: ['/auth/reset-password'] });
     expect(screen.getByTestId('mock-reset-password-form')).toBeInTheDocument();
     expect(screen.queryByTestId('mock-header')).not.toBeInTheDocument();
     expect(screen.queryByTestId('mock-meme-grid')).not.toBeInTheDocument();
   });
 
-  test('renders profile page on /profile path', () => {
-    render(
-      <MemoryRouter initialEntries={['/profile']}>
-        <App />
-      </MemoryRouter>
-    );
-
+  it('renders profile page on /profile path', async () => {
+    render(<App />, { initialEntries: ['/profile'] });
     expect(screen.getByTestId('mock-profile-page')).toBeInTheDocument();
     expect(screen.queryByTestId('mock-header')).not.toBeInTheDocument();
     expect(screen.queryByTestId('mock-meme-grid')).not.toBeInTheDocument();
   });
 
-  test('renders error state when there is an error', () => {
-    const mockError = 'Test error message';
-    mockStore.error = mockError;
-    mockStore.isLoading = false;
+  it('shows loading state when not initialized', () => {
+    vi.mocked(useAppInitialization).mockReturnValue({
+      isInitialized: false,
+      error: null
+    });
 
-    render(
-      <MemoryRouter>
-        <App />
-      </MemoryRouter>
-    );
-
-    expect(screen.getByText('Error Loading Memes: Test error message')).toBeInTheDocument();
-
-    // Reset mock store
-    mockStore.error = null;
+    render(<App />, { initialEntries: ['/'] });
+    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+    expect(screen.queryByTestId('mock-header')).not.toBeInTheDocument();
   });
 
-  test('renders loading state when loading memes', () => {
-    mockStore.isLoading = true;
-    mockStore.error = null;
+  it('shows error state when initialization fails', async () => {
+    const initError = 'Failed to initialize';
+    vi.mocked(useAppInitialization).mockReturnValue({
+      isInitialized: false,
+      error: initError
+    });
 
-    render(
-      <MemoryRouter>
-        <App />
-      </MemoryRouter>
-    );
+    render(<App />, { initialEntries: ['/'] });
+    await waitFor(() => {
+      expect(screen.getByText(initError)).toBeInTheDocument();
+    });
+  });
 
+  it('renders error state when there is a meme loading error', () => {
+    const errorMessage = 'Test error message';
+    vi.mocked(useMemeStore).mockReturnValue({
+      ...useMemeStore(),
+      error: errorMessage,
+      isLoading: false
+    } as any);
+
+    render(<App />, { initialEntries: ['/'] });
+    expect(screen.getByText(`Error Loading Memes: ${errorMessage}`)).toBeInTheDocument();
+  });
+
+  it('renders loading state when loading memes', () => {
+    vi.mocked(useMemeStore).mockReturnValue({
+      ...useMemeStore(),
+      isLoading: true
+    } as any);
+
+    render(<App />, { initialEntries: ['/'] });
     expect(screen.getByTestId('mock-header')).toBeInTheDocument();
     expect(screen.queryByTestId('mock-meme-grid')).not.toBeInTheDocument();
     expect(document.querySelector('.animate-spin')).toBeInTheDocument();
-
-    // Reset mock store
-    mockStore.isLoading = false;
   });
 });
