@@ -9,6 +9,7 @@ import { MemeView } from './components/MemeView';
 import { MemeEmbed } from './components/MemeEmbed';
 import { MetaTags } from './components/MetaTags';
 import { useMemeStore } from './store/useMemeStore';
+import { Layout } from './components/Layout';
 
 export function App() {
   const { isLoading, error, loadMemes } = useMemeStore();
@@ -25,7 +26,7 @@ export function App() {
   const isHomePage = location.pathname === '/';
 
   return (
-    <>
+    <Layout>
       {showHeader && (
         <Header onUploadClick={() => setIsUploadModalOpen(true)} />
       )}
@@ -61,6 +62,6 @@ export function App() {
           onClose={() => setIsUploadModalOpen(false)}
         />
       )}
-    </>
+    </Layout>
   );
 }

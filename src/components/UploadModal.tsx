@@ -77,11 +77,15 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
       }
 
       const metadata = {
-        title: titleValue,
+        title,
         tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
-        user_id: user.id,
-        image_url: '', // Will be set by uploadMeme
-        created_at: new Date().toISOString()
+        user_id: user?.id,
+        image_url: '',
+        created_at: new Date().toISOString(),
+        favorite_count: 0,
+        view_count: 0,
+        share_count: 0,
+        download_count: 0
       };
 
       await uploadMeme(file, metadata);

@@ -1,33 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useMemeStore } from '../store/useMemeStore';
-import { MemeModal } from './MemeModal';
-import { MetaTags } from './MetaTags';
-import { Meme } from '../types/meme';
 import { supabase } from '../config/supabase';
+import { Meme } from '../types/meme';
+import { MemeModal } from './MemeModal';
 
 export function MemeView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { memes, isLoading: isStoreLoading } = useMemeStore();
   const [meme, setMeme] = useState<Meme | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadMeme() {
-      try {
-        // First try to find the meme in the store
-        if (!isStoreLoading) {
-          const foundMeme = memes.find(m => m.id.toString() === id);
-          if (foundMeme) {
-            setMeme(foundMeme);
-            setIsLoading(false);
-            return;
-          }
-        }
+      if (!id) {
+        setError('No meme ID provided');
+        return;
+      }
 
-        // If not found in store, fetch directly from the database
+      try {
         const { data: memeData, error: dbError } = await supabase
           .from('memes')
           .select('*')
@@ -38,31 +28,43 @@ export function MemeView() {
           throw dbError;
         }
 
-        if (memeData) {
-          const loadedMeme: Meme = {
-            id: memeData.id,
-            title: memeData.title,
-            image_url: memeData.image_url,
-            tags: memeData.tags || [],
-            created_at: memeData.created_at,
-            user_id: memeData.user_id
-          };
-          setMeme(loadedMeme);
-        } else {
-          navigate('/', { replace: true });
+        if (!memeData) {
+          throw new Error('Meme not found');
         }
+
+        setMeme({
+          id: memeData.id,
+          title: memeData.title,
+          image_url: memeData.image_url,
+          tags: memeData.tags,
+          created_at: memeData.created_at,
+          user_id: memeData.user_id,
+          favorite_count: memeData.favorite_count ?? 0,
+          view_count: memeData.view_count ?? 0,
+          share_count: memeData.share_count ?? 0,
+          download_count: memeData.download_count ?? 0
+        });
       } catch (err) {
-        console.error('Error loading meme:', err);
         setError(err instanceof Error ? err.message : 'Failed to load meme');
-      } finally {
-        setIsLoading(false);
       }
     }
 
     loadMeme();
-  }, [id, memes, navigate, isStoreLoading]);
+  }, [id]);
 
-  if (isLoading) {
+  const handleClose = () => {
+    navigate('/');
+  };
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
+
+  if (!meme) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div
@@ -74,24 +76,5 @@ export function MemeView() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-red-600">Error: {error}</div>
-      </div>
-    );
-  }
-
-  if (!meme) return null;
-
-  return (
-    <>
-      <MetaTags meme={meme} />
-      <MemeModal
-        meme={meme}
-        isOpen={true}
-        onClose={() => navigate('/', { replace: true })}
-      />
-    </>
-  );
+  return <MemeModal meme={meme} onClose={handleClose} isOpen={true} />;
 }

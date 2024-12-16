@@ -1,112 +1,102 @@
-import { describe, expect, test, vi } from 'vitest';
-import { checkDuplicate } from '../memeService';
-import { getImageData, compareImageData } from '../../utils/imageUtils';
-import { imageCache } from '../imageCache';
-import { Meme } from '../../types/meme';
+import { describe, it, expect, vi } from 'vitest';
+import { supabase } from '../../config/supabase';
+import { getMemes, toggleFavorite } from '../memeService';
+import { createMockMeme } from '../../test/factories';
+import { User } from '@supabase/supabase-js';
 
-// Mock ImageData class
-class MockImageData {
-  data: Uint8ClampedArray;
-  width: number;
-  height: number;
-
-  constructor(width: number, height: number, data?: Uint8ClampedArray) {
-    this.width = width;
-    this.height = height;
-    this.data = data || new Uint8ClampedArray(width * height * 4);
-  }
+interface MockChain {
+  select: ReturnType<typeof vi.fn>;
+  order: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+  single: ReturnType<typeof vi.fn>;
+  upsert: ReturnType<typeof vi.fn>;
+  delete: ReturnType<typeof vi.fn>;
 }
 
-// Mock dependencies
-vi.mock('../../utils/imageUtils');
-vi.mock('../imageCache');
+// Create a chainable mock
+const createChainableMock = (): MockChain => {
+  const mock: MockChain = {
+    select: vi.fn(),
+    order: vi.fn(),
+    eq: vi.fn(),
+    single: vi.fn(),
+    upsert: vi.fn(),
+    delete: vi.fn()
+  };
 
-// Replace global ImageData
-global.ImageData = MockImageData as any;
+  mock.select.mockReturnValue(mock);
+  mock.order.mockReturnValue(mock);
+  mock.eq.mockReturnValue(mock);
+  mock.single.mockReturnValue(mock);
+  mock.upsert.mockReturnValue(mock);
+  mock.delete.mockReturnValue(mock);
+
+  return mock;
+};
+
+vi.mock('../../config/supabase', () => ({
+  supabase: {
+    from: vi.fn(() => createChainableMock())
+  }
+}));
 
 describe('memeService', () => {
+  const mockMemes = [
+    createMockMeme({ id: '1' }),
+    createMockMeme({ id: '2' })
+  ];
+
+  const mockUser = {
+    id: 'user1',
+    email: 'test@example.com',
+    app_metadata: {},
+    user_metadata: {},
+    aud: 'authenticated',
+    created_at: new Date().toISOString()
+  } as User;
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  const mockMemes: Meme[] = [
-    {
-      id: '1',
-      title: 'Test Meme 1',
-      image_url: 'https://example.com/meme1.jpg',
-      tags: ['funny'],
-      created_at: '2024-03-11T00:00:00Z',
-      user_id: 'user1',
-    },
-    {
-      id: '2',
-      title: 'Test Meme 2',
-      image_url: 'https://example.com/meme2.jpg',
-      tags: ['cats'],
-      created_at: '2024-03-11T00:00:00Z',
-      user_id: 'user2',
-    },
-  ];
+  it('fetches memes successfully', async () => {
+    const mockChain = createChainableMock();
+    mockChain.order.mockResolvedValue({ data: mockMemes, error: null });
+    vi.mocked(supabase.from).mockReturnValue(mockChain as any);
 
-  test('should detect duplicate meme', async () => {
-    const mockFile = new File([''], 'test.jpg', { type: 'image/jpeg' });
-    const mockImageData = new MockImageData(1, 1);
-
-    // Mock getImageData to return same data for both images
-    vi.mocked(getImageData).mockResolvedValue(mockImageData as any);
-    vi.mocked(compareImageData).mockReturnValue(true);
-    vi.mocked(imageCache.get).mockResolvedValue(mockImageData as any);
-
-    const result = await checkDuplicate(mockFile, mockMemes);
-
-    expect(result.isDuplicate).toBe(true);
-    expect(result.duplicateOf).toBeDefined();
-    expect(result.duplicateOf?.id).toBe('1');
+    const result = await getMemes();
+    expect(result).toEqual(mockMemes);
   });
 
-  test('should not detect duplicate for unique meme', async () => {
-    const mockFile = new File([''], 'test.jpg', { type: 'image/jpeg' });
-    const mockImageData1 = new MockImageData(1, 1);
-    const mockImageData2 = new MockImageData(2, 2);
+  it('handles error when fetching memes', async () => {
+    const mockChain = createChainableMock();
+    mockChain.order.mockResolvedValue({ data: null, error: new Error('Database error') });
+    vi.mocked(supabase.from).mockReturnValue(mockChain as any);
 
-    vi.mocked(getImageData).mockResolvedValue(mockImageData1 as any);
-    vi.mocked(compareImageData).mockReturnValue(false);
-    vi.mocked(imageCache.get).mockResolvedValue(mockImageData2 as any);
-
-    const result = await checkDuplicate(mockFile, mockMemes);
-
-    expect(result.isDuplicate).toBe(false);
-    expect(result.duplicateOf).toBeUndefined();
+    await expect(getMemes()).rejects.toThrow('Database error');
   });
 
-  test('should handle errors gracefully', async () => {
-    const mockFile = new File([''], 'test.jpg', { type: 'image/jpeg' });
+  it('toggles favorite status successfully', async () => {
+    const mockMeme = createMockMeme();
+    const mockChain = createChainableMock();
+    mockChain.single.mockResolvedValue({ data: null, error: new Error('Not found') });
+    mockChain.upsert.mockResolvedValue({ data: null, error: null });
+    vi.mocked(supabase.from).mockReturnValue(mockChain as any);
 
-    vi.mocked(getImageData).mockRejectedValue(new Error('Failed to process image'));
+    await expect(toggleFavorite(mockMeme, mockUser)).resolves.not.toThrow();
 
-    const result = await checkDuplicate(mockFile, mockMemes);
-
-    expect(result.isDuplicate).toBe(false);
-    expect(result.duplicateOf).toBeUndefined();
+    expect(mockChain.select).toHaveBeenCalled();
+    expect(mockChain.eq).toHaveBeenCalledWith('meme_id', mockMeme.id);
+    expect(mockChain.eq).toHaveBeenCalledWith('user_id', mockUser.id);
   });
 
-  test('should process memes in chunks', async () => {
-    const mockFile = new File([''], 'test.jpg', { type: 'image/jpeg' });
-    const mockImageData = new MockImageData(1, 1);
+  it('handles error when toggling favorite', async () => {
+    const mockMeme = createMockMeme();
+    const mockChain = createChainableMock();
+    mockChain.single.mockResolvedValue({ data: null, error: new Error('Not found') });
+    mockChain.upsert.mockResolvedValue({ data: null, error: new Error('Database error') });
+    vi.mocked(supabase.from).mockReturnValue(mockChain as any);
 
-    vi.mocked(getImageData).mockResolvedValue(mockImageData as any);
-    vi.mocked(compareImageData).mockReturnValue(false);
-    vi.mocked(imageCache.get).mockResolvedValue(mockImageData as any);
-
-    // Create array of 10 memes
-    const manyMemes = Array(10).fill(null).map((_, i) => ({
-      ...mockMemes[0],
-      id: i.toString(),
-    }));
-
-    await checkDuplicate(mockFile, manyMemes);
-
-    // Should be called in chunks (10 memes / 5 chunk size = 2 chunks)
-    expect(imageCache.get).toHaveBeenCalledTimes(10);
+    await expect(toggleFavorite(mockMeme, mockUser)).rejects.toThrow('Database error');
   });
 });

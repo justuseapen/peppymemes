@@ -1,56 +1,36 @@
 import React from 'react';
-import { AlertTriangle, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Meme } from '../types/meme';
 
-interface DuplicateAlertProps {
+export interface DuplicateAlertProps {
   duplicateOf: Meme;
   onClose: () => void;
 }
 
 export function DuplicateAlert({ duplicateOf, onClose }: DuplicateAlertProps) {
   return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-      onClick={onClose}
-      data-testid="modal-backdrop"
-    >
-      <div
-        className="bg-white rounded-lg w-full max-w-md p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+      <div className="bg-white rounded-lg max-w-lg w-full p-4">
         <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center space-x-3 text-red-600">
-            <AlertTriangle size={24} />
-            <h3 className="text-lg font-semibold">Duplicate Detected</h3>
-          </div>
+          <h2 className="text-lg font-semibold">Duplicate Meme Found</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-            aria-label="Close modal"
+            className="p-1 hover:bg-gray-100 rounded-full"
+            aria-label="Close"
           >
             <X size={20} />
           </button>
         </div>
-
-        <p className="text-gray-600 mb-4">
-          This meme has already been uploaded as "{duplicateOf.title}" by {duplicateOf.user_id}.
-          Duplicate uploads are not allowed to maintain content quality.
-        </p>
-
-        <div className="mb-4">
+        <div className="space-y-4">
+          <p>
+            A similar meme titled "{duplicateOf.title}" has already been uploaded.
+          </p>
           <img
             src={duplicateOf.image_url}
             alt="Existing meme"
-            className="w-full h-48 object-cover rounded"
+            className="w-full rounded-lg"
           />
         </div>
-
-        <button
-          onClick={onClose}
-          className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-        >
-          Close
-        </button>
       </div>
     </div>
   );

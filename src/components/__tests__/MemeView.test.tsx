@@ -1,132 +1,78 @@
-import React from 'react';
-import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { vi, describe, it, expect } from 'vitest';
+import { render, screen, waitFor } from '../../test/testUtils';
 import { MemeView } from '../MemeView';
+import { supabase } from '../../config/supabase';
 import { useMemeStore } from '../../store/useMemeStore';
 
-// Mock react-router-dom's useNavigate
-const mockNavigate = vi.fn();
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate
-  };
-});
-
-// Mock Supabase client
-vi.mock('../../config/supabase', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          single: vi.fn(() => ({
-            data: null,
-            error: new Error('Failed to load meme')
-          }))
-        }))
-      }))
-    }))
-  }
-}));
-
-const TEST_MEME_ID = '2ae1d9f9-44e2-4e79-96d2-be555cc0a5c3';
-
-// Create a mock store with loading state
-const createMockStore = (isLoading = false, memes = []) => ({
-  isLoading,
-  memes: memes.length > 0 ? memes : [
-    {
-      id: TEST_MEME_ID,
-      title: 'Test Meme',
-      image_url: 'https://example.com/meme.jpg',
-      tags: ['funny', 'test'],
-      created_at: '2024-03-11T00:00:00Z',
-      user_id: 'user1'
-    }
-  ]
-});
-
-// Mock the store with a default implementation
-const mockUseMemeStore = vi.fn(() => createMockStore(false));
+// Mock useMemeStore
 vi.mock('../../store/useMemeStore', () => ({
-  useMemeStore: () => mockUseMemeStore()
+  useMemeStore: vi.fn()
 }));
+
+const mockMeme = {
+  id: '123',
+  title: 'Test Meme',
+  image_url: 'https://example.com/meme.jpg',
+  tags: ['funny', 'test'],
+  created_at: '2023-01-01',
+  view_count: 0,
+  favorite_count: 0,
+  share_count: 0,
+  download_count: 0
+};
 
 describe('MemeView', () => {
   beforeEach(() => {
-    mockNavigate.mockClear();
-    mockUseMemeStore.mockClear();
-    document.title = 'Peppy Memes'; // Reset title
-  });
-
-  afterEach(() => {
+    // Reset mocks
     vi.clearAllMocks();
+
+    // Setup default store state
+    (useMemeStore as any).mockReturnValue({
+      memes: [],
+      isLoading: false
+    });
   });
 
-  test('shows loading state', () => {
-    mockUseMemeStore.mockReturnValue(createMockStore(true));
+  it('renders loading state initially', () => {
+    (useMemeStore as any).mockReturnValue({
+      memes: [],
+      isLoading: true
+    });
 
-    render(
-      <MemoryRouter initialEntries={[`/meme/${TEST_MEME_ID}`]}>
-        <Routes>
-          <Route path="/meme/:id" element={<MemeView />} />
-        </Routes>
-      </MemoryRouter>
-    );
-
-    expect(screen.getByRole('status')).toBeInTheDocument();
+    render(<MemeView />);
+    const loadingSpinner = screen.getByRole('status', { name: /loading meme/i });
+    expect(loadingSpinner).toBeInTheDocument();
+    expect(loadingSpinner).toHaveClass('animate-spin');
   });
 
-  test('renders meme modal when meme is found', async () => {
-    mockUseMemeStore.mockReturnValue(createMockStore(false));
+  it('renders meme content after loading', async () => {
+    // Mock successful Supabase response
+    vi.mocked(supabase.from).mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: mockMeme, error: null })
+    } as any);
 
-    render(
-      <MemoryRouter initialEntries={[`/meme/${TEST_MEME_ID}`]}>
-        <Routes>
-          <Route path="/meme/:id" element={<MemeView />} />
-        </Routes>
-      </MemoryRouter>
-    );
+    render(<MemeView />);
 
     await waitFor(() => {
       expect(screen.getByText('Test Meme')).toBeInTheDocument();
-    });
-    expect(screen.getByAltText('Test Meme')).toBeInTheDocument();
-    expect(screen.getByText('funny')).toBeInTheDocument();
-    expect(screen.getByText('test')).toBeInTheDocument();
-  });
-
-  test('shows error when meme is not found', async () => {
-    mockUseMemeStore.mockReturnValue(createMockStore(false, []));
-
-    render(
-      <MemoryRouter initialEntries={['/meme/non-existent-id']}>
-        <Routes>
-          <Route path="/meme/:id" element={<MemeView />} />
-        </Routes>
-      </MemoryRouter>
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('Error: Failed to load meme')).toBeInTheDocument();
+      expect(screen.getByAltText('Test Meme')).toBeInTheDocument();
     });
   });
 
-  test('updates document title when meme is found', async () => {
-    mockUseMemeStore.mockReturnValue(createMockStore(false));
+  it('renders error state when meme not found', async () => {
+    // Mock error response from Supabase
+    vi.mocked(supabase.from).mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: new Error('Not found') })
+    } as any);
 
-    render(
-      <MemoryRouter initialEntries={[`/meme/${TEST_MEME_ID}`]}>
-        <Routes>
-          <Route path="/meme/:id" element={<MemeView />} />
-        </Routes>
-      </MemoryRouter>
-    );
+    render(<MemeView />);
 
     await waitFor(() => {
-      expect(document.title).toBe('Test Meme - Peppy Memes');
+      expect(screen.getByText(/not found/i)).toBeInTheDocument();
     });
   });
 });

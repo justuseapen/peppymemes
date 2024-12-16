@@ -1,10 +1,5 @@
 import { supabase } from '../config/supabase';
 import { Meme } from '../types/meme';
-import { createMeme, fetchMemesFromApi } from './api/memeApi';
-import { uploadFileToStorage } from './api/uploadApi';
-
-const BUCKET_NAME = 'memes';
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export class StorageError extends Error {
   constructor(message: string) {
@@ -13,55 +8,50 @@ export class StorageError extends Error {
   }
 }
 
-export async function uploadMeme(
-  file: File,
-  metadata: Omit<Meme, 'id' | 'imageUrl'>
-): Promise<Meme> {
-  try {
-    // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+export async function uploadMeme(file: File, metadata: Omit<Meme, 'id'>): Promise<Meme> {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+  const filePath = `memes/${fileName}`;
 
-    if (userError) {
-      console.error('Auth error:', userError);
-      throw new StorageError('Failed to get user information');
-    }
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from('memes')
+    .upload(filePath, file);
 
-    if (!user) {
-      throw new StorageError('Must be logged in to upload memes');
-    }
-
-    if (file.size > MAX_FILE_SIZE) {
-      throw new StorageError('File size exceeds 5MB limit');
-    }
-
-    // Upload file to storage
-    const { publicUrl } = await uploadFileToStorage(file, user.id, BUCKET_NAME);
-
-    // Create meme record in database
-    return await createMeme({
-      title: metadata.title,
-      tags: metadata.tags,
-      imageUrl: publicUrl,
-      userId: user.id
-    });
-  } catch (error) {
-    console.error('Error in uploadMeme:', error);
-    if (error instanceof StorageError) {
-      throw error;
-    }
-    throw new StorageError(
-      error instanceof Error ? error.message : 'Failed to upload meme'
-    );
+  if (uploadError) {
+    throw new StorageError(`Failed to upload meme: ${uploadError.message}`);
   }
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('memes')
+    .getPublicUrl(uploadData.path);
+
+  const memeData = {
+    ...metadata,
+    image_url: publicUrl
+  };
+
+  const { data: insertedMeme, error: insertError } = await supabase
+    .from('memes')
+    .insert(memeData)
+    .select()
+    .single();
+
+  if (insertError) {
+    throw new StorageError(`Failed to save meme metadata: ${insertError.message}`);
+  }
+
+  return insertedMeme;
 }
 
 export async function fetchMemes(): Promise<Meme[]> {
-  try {
-    return await fetchMemesFromApi();
-  } catch (error) {
-    console.error('Error in fetchMemes:', error);
-    throw new StorageError(
-      error instanceof Error ? error.message : 'Failed to fetch memes'
-    );
+  const { data, error } = await supabase
+    .from('memes')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new StorageError(`Failed to fetch memes: ${error.message}`);
   }
+
+  return data || [];
 }

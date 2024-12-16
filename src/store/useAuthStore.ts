@@ -1,47 +1,47 @@
 import { create } from 'zustand';
 import { supabase } from '../config/supabase';
-import { AuthState } from '../types/auth';
 
-// Get the base URL for redirects
-const getBaseUrl = () => {
-  // Use window.location.origin in the browser
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
-  }
-  // Fallback for SSR (though we don't use it currently)
-  return import.meta.env.VITE_PUBLIC_URL || 'https://peppymemes.com';
-};
-
-export const useAuthStore = create<AuthState & {
+interface AuthState {
+  user: any | null;
+  isAuthenticated: boolean;
+  error: string | null;
+  isAuthModalOpen: boolean;
   signUp: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   setError: (error: string | null) => void;
-}>((set) => ({
-  user: null,
-  isLoading: true,
-  error: null,
+  openAuthModal: () => void;
+  closeAuthModal: () => void;
+}
 
-  signUp: async (email, password) => {
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  isAuthenticated: false,
+  error: null,
+  isAuthModalOpen: false,
+
+  signUp: async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          emailRedirectTo: `${getBaseUrl()}/auth/callback`,
-        },
       });
 
       if (error) throw error;
 
-      set({ error: 'Please check your email to confirm your account.' });
-    } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Failed to sign up' });
+      set({
+        user: data.user,
+        isAuthenticated: !!data.user,
+        error: null,
+        isAuthModalOpen: false
+      });
+    } catch (error: any) {
+      set({ error: error.message });
     }
   },
 
-  signIn: async (email, password) => {
+  signIn: async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -51,15 +51,13 @@ export const useAuthStore = create<AuthState & {
       if (error) throw error;
 
       set({
-        user: {
-          id: data.user.id,
-          email: data.user.email!,
-          username: data.user.user_metadata.username,
-        },
-        error: null
+        user: data.user,
+        isAuthenticated: !!data.user,
+        error: null,
+        isAuthModalOpen: false
       });
-    } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Failed to sign in' });
+    } catch (error: any) {
+      set({ error: error.message });
     }
   },
 
@@ -67,41 +65,59 @@ export const useAuthStore = create<AuthState & {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      set({ user: null, error: null });
-    } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Failed to sign out' });
+
+      set({
+        user: null,
+        isAuthenticated: false,
+        error: null
+      });
+    } catch (error: any) {
+      set({ error: error.message });
     }
   },
 
-  resetPassword: async (email) => {
+  resetPassword: async (email: string) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${getBaseUrl()}/auth/reset-password`,
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) throw error;
-
-      set({ error: 'Check your email for password reset instructions.' });
-    } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Failed to send reset password email' });
+      set({ error: null });
+    } catch (error: any) {
+      set({ error: error.message });
     }
   },
 
-  setError: (error) => set({ error }),
+  setError: (error: string | null) => set({ error }),
+  openAuthModal: () => {
+    console.log('Opening auth modal');
+    set((state) => {
+      console.log('Current state:', state);
+      console.log('Setting isAuthModalOpen to true');
+      return { isAuthModalOpen: true };
+    });
+  },
+  closeAuthModal: () => {
+    console.log('Closing auth modal');
+    set({ isAuthModalOpen: false });
+  }
 }));
 
 // Initialize auth state
 supabase.auth.onAuthStateChange((event, session) => {
+  console.log('Auth state changed:', event, session?.user?.id);
   if (session?.user) {
     useAuthStore.setState({
-      user: {
-        id: session.user.id,
-        email: session.user.email!,
-        username: session.user.user_metadata.username,
-      },
-      isLoading: false,
+      user: session.user,
+      isAuthenticated: true,
+      error: null
     });
   } else {
-    useAuthStore.setState({ user: null, isLoading: false });
+    useAuthStore.setState({
+      user: null,
+      isAuthenticated: false,
+      error: null
+    });
   }
 });

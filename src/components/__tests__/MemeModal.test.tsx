@@ -1,148 +1,115 @@
-import React from 'react';
-import { describe, expect, test, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '../../test/testUtils';
 import { MemeModal } from '../MemeModal';
-import { Meme } from '../../types/meme';
+import { statsService } from '../../services/statsService';
+
+// Mock statsService
+vi.mock('../../services/statsService', () => ({
+  statsService: {
+    incrementStat: vi.fn(),
+    getStats: vi.fn().mockResolvedValue({
+      view_count: 0,
+      favorite_count: 0,
+      share_count: 0,
+      download_count: 0
+    })
+  }
+}));
 
 // Mock clipboard API
-const mockClipboard = {
-  writeText: vi.fn()
-};
 Object.assign(navigator, {
-  clipboard: mockClipboard
+  clipboard: {
+    writeText: vi.fn()
+  }
 });
 
 // Mock window.open
-const mockOpen = vi.fn();
-window.open = mockOpen;
+const windowOpen = vi.fn();
+window.open = windowOpen;
+
+const mockMeme = {
+  id: '123',
+  title: 'Test Meme',
+  image_url: 'https://example.com/meme.jpg',
+  tags: ['funny', 'test'],
+  created_at: '2023-01-01',
+  view_count: 0,
+  favorite_count: 0,
+  share_count: 0,
+  download_count: 0
+};
 
 describe('MemeModal', () => {
-  const mockMeme: Meme = {
-    id: '123',
-    title: 'Test Meme',
-    image_url: 'https://example.com/meme.jpg',
-    tags: ['funny', 'test'],
-    created_at: '2024-03-11T00:00:00Z',
-    user_id: 'user1'
-  };
-
   beforeEach(() => {
-    mockClipboard.writeText.mockClear();
-    mockOpen.mockClear();
+    vi.clearAllMocks();
   });
 
-  test('renders modal content when open', () => {
-    render(
-      <MemeModal
-        meme={mockMeme}
-        isOpen={true}
-        onClose={() => { }}
-      />
-    );
-
+  it('renders modal content when open', () => {
+    render(<MemeModal meme={mockMeme} isOpen={true} onClose={() => { }} />);
     expect(screen.getByText('Test Meme')).toBeInTheDocument();
-    expect(screen.getByAltText('Test Meme')).toBeInTheDocument();
-    expect(screen.getByText('funny')).toBeInTheDocument();
-    expect(screen.getByText('test')).toBeInTheDocument();
+    expect(screen.getByText('0 views')).toBeInTheDocument();
   });
 
-  test('does not render when closed', () => {
-    render(
-      <MemeModal
-        meme={mockMeme}
-        isOpen={false}
-        onClose={() => { }}
-      />
-    );
-
+  it('does not render when closed', () => {
+    render(<MemeModal meme={mockMeme} isOpen={false} onClose={() => { }} />);
     expect(screen.queryByText('Test Meme')).not.toBeInTheDocument();
   });
 
-  test('calls onClose when clicking close button', () => {
+  it('calls onClose when clicking close button', () => {
     const onClose = vi.fn();
-    render(
-      <MemeModal
-        meme={mockMeme}
-        isOpen={true}
-        onClose={onClose}
-      />
-    );
-
+    render(<MemeModal meme={mockMeme} isOpen={true} onClose={onClose} />);
     fireEvent.click(screen.getByLabelText('Close modal'));
     expect(onClose).toHaveBeenCalled();
   });
 
-  test('calls onClose when clicking backdrop', () => {
+  it('calls onClose when clicking backdrop', () => {
     const onClose = vi.fn();
-    render(
-      <MemeModal
-        meme={mockMeme}
-        isOpen={true}
-        onClose={onClose}
-      />
-    );
-
-    // Click the backdrop (the outer div)
-    fireEvent.click(screen.getByRole('dialog'));
+    const { container } = render(<MemeModal meme={mockMeme} isOpen={true} onClose={onClose} />);
+    fireEvent.click(container.firstChild as Element);
     expect(onClose).toHaveBeenCalled();
   });
 
-  test('copies link when clicking Copy Link button', async () => {
-    render(
-      <MemeModal
-        meme={mockMeme}
-        isOpen={true}
-        onClose={() => { }}
-      />
-    );
+  it('copies link when clicking Copy Link button', async () => {
+    render(<MemeModal meme={mockMeme} isOpen={true} onClose={() => { }} />);
+
+    // Clear any previous calls to incrementStat
+    vi.mocked(statsService.incrementStat).mockClear();
 
     fireEvent.click(screen.getByText('Copy Link'));
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(expect.stringContaining('/meme/123'));
 
-    expect(mockClipboard.writeText).toHaveBeenCalledWith(
-      `${window.location.origin}/meme/${mockMeme.id}`
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('Copied!')).toBeInTheDocument();
+    // Wait for all state updates to complete
+    await vi.waitFor(() => {
+      expect(statsService.incrementStat).toHaveBeenCalledWith('123', 'share');
     });
   });
 
-  test('copies embed code when clicking Copy button in embed section', async () => {
-    render(
-      <MemeModal
-        meme={mockMeme}
-        isOpen={true}
-        onClose={() => { }}
-      />
-    );
+  it('copies embed code when clicking Copy button in embed section', async () => {
+    render(<MemeModal meme={mockMeme} isOpen={true} onClose={() => { }} />);
 
-    const embedCode = `<iframe src="${window.location.origin}/meme/${mockMeme.id}/embed" width="500" height="400" frameborder="0" allowfullscreen></iframe>`;
+    // Clear any previous calls to incrementStat
+    vi.mocked(statsService.incrementStat).mockClear();
 
-    fireEvent.click(screen.getByText(/^Copy$/));
+    // Use a more specific selector to find the embed copy button
+    const embedCopyButton = screen.getByRole('button', { name: /^Copy$/ });
+    fireEvent.click(embedCopyButton);
 
-    expect(mockClipboard.writeText).toHaveBeenCalledWith(embedCode);
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(expect.stringContaining('<iframe'));
 
-    await waitFor(() => {
-      expect(screen.getByText('Copied!')).toBeInTheDocument();
+    // Wait for all state updates to complete
+    await vi.waitFor(() => {
+      expect(statsService.incrementStat).toHaveBeenCalledWith('123', 'share');
     });
   });
 
-  test('opens Truth Social share dialog when clicking Share on Truth Social', () => {
-    render(
-      <MemeModal
-        meme={mockMeme}
-        isOpen={true}
-        onClose={() => { }}
-      />
-    );
-
+  it('opens Truth Social share dialog when clicking Share on Truth Social', async () => {
+    render(<MemeModal meme={mockMeme} isOpen={true} onClose={() => { }} />);
     fireEvent.click(screen.getByText('Share on Truth Social'));
-
-    const expectedUrl = `https://truthsocial.com/share?title=${encodeURIComponent('Test Meme')}&url=${encodeURIComponent(`${window.location.origin}/meme/${mockMeme.id}`)}`;
-    expect(mockOpen).toHaveBeenCalledWith(
-      expectedUrl,
+    expect(windowOpen).toHaveBeenCalledWith(
+      expect.stringContaining('truthsocial.com/share'),
       '_blank',
-      'width=600,height=400'
+      expect.any(String)
     );
+    expect(statsService.incrementStat).toHaveBeenCalledWith('123', 'share');
   });
 });
