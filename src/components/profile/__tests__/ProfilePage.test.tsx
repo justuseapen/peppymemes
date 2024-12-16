@@ -36,6 +36,11 @@ vi.mock('../../../config/supabase', () => ({
     auth: {
       updateUser: vi.fn(),
     },
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    }),
   },
 }));
 
@@ -44,7 +49,7 @@ import { ProfilePage } from '../ProfilePage';
 
 describe('ProfilePage', () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
     mockUseAuthStore.mockReturnValue({
       user: mockUser,
       setError: mockSetError,
@@ -105,18 +110,17 @@ describe('ProfilePage', () => {
   });
 
   test('redirects to home if user is not authenticated', async () => {
-    console.log('Test started: redirect to home if user is not authenticated');
-    mockUseAuthStore.mockReturnValueOnce({
+    // Set up the mock before rendering
+    mockUseAuthStore.mockReturnValue({
       user: null,
       setError: mockSetError,
     });
 
     renderComponent();
 
+    // Wait for the navigation to occur
     await waitFor(() => {
-      console.log('Checking if navigate was called with /');
       expect(mockNavigate).toHaveBeenCalledWith('/');
     });
-    console.log('Test completed: redirect to home if user is not authenticated');
   });
 });

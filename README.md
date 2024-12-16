@@ -96,3 +96,73 @@ src/
 6. Keep bundle size in check
 7. Use semantic HTML
 8. Follow accessibility best practices
+9. Implement proper loading states for async operations
+10. Use optimistic updates for better UX
+11. Implement proper error boundaries
+12. Cache API responses when appropriate
+13. Use proper image optimization techniques
+14. Implement proper security measures for user data
+15. Follow responsive design principles
+16. Implement proper SEO practices
+17. Use proper state management patterns
+18. Follow proper routing conventions
+19. Implement proper form validation
+20. Use proper error messaging
+
+### Application-Specific Guidelines
+
+1. Image Handling
+   - Optimize images for different screen sizes
+   - Use lazy loading for images
+   - Implement proper fallbacks for failed image loads
+   - Cache images when appropriate
+   - Handle image upload restrictions
+
+2. User Experience
+   - Implement smooth transitions between pages
+   - Show proper loading states
+   - Provide clear feedback for user actions
+   - Implement proper error messaging
+   - Use optimistic updates for favorites
+
+3. Performance
+   - Implement proper pagination
+   - Use infinite scroll where appropriate
+   - Cache API responses
+   - Optimize bundle size
+   - Use code splitting
+
+4. Security
+   - Implement proper authentication
+   - Handle user permissions
+   - Sanitize user input
+   - Protect user data
+   - Follow CORS policies
+
+5. Social Features
+   - Implement proper sharing functionality
+   - Handle user interactions
+   - Implement proper notification system
+   - Handle user mentions
+   - Implement proper reporting system
+
+6. Content Management
+   - Implement proper content moderation
+   - Handle inappropriate content
+   - Implement proper tagging system
+   - Handle duplicate content
+   - Implement proper search functionality
+
+7. Mobile Experience
+   - Implement proper touch interactions
+   - Handle different screen sizes
+   - Implement proper gestures
+   - Handle offline functionality
+   - Optimize for mobile networks
+
+8. Accessibility
+   - Provide proper alt text for images
+   - Implement proper keyboard navigation
+   - Follow ARIA guidelines
+   - Implement proper color contrast
+   - Handle screen readers

@@ -27,10 +27,10 @@ describe('App', () => {
     expect(screen.queryByTestId('mock-meme-grid')).not.toBeInTheDocument();
   });
 
-  it('renders profile page on /profile path', async () => {
+  it('renders profile page on /profile path', () => {
     render(<App />, { initialEntries: ['/profile'] });
     expect(screen.getByTestId('mock-profile-page')).toBeInTheDocument();
-    expect(screen.queryByTestId('mock-header')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mock-header')).toBeInTheDocument();
     expect(screen.queryByTestId('mock-meme-grid')).not.toBeInTheDocument();
   });
 

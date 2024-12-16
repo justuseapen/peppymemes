@@ -18,7 +18,7 @@ export function App() {
   const location = useLocation();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
-  const showHeader = !['/profile', '/auth/reset-password'].includes(location.pathname) &&
+  const showHeader = !location.pathname.startsWith('/auth/reset-password') &&
     !location.pathname.endsWith('/embed');
 
   const isHomePage = location.pathname === '/';
