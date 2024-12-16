@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMemeStore } from '../store/useMemeStore';
 import { MemeModal } from './MemeModal';
+import { MetaTags } from './MetaTags';
 import { Meme } from '../types/meme';
 import { supabase } from '../config/supabase';
 
@@ -21,7 +22,6 @@ export function MemeView() {
           const foundMeme = memes.find(m => m.id.toString() === id);
           if (foundMeme) {
             setMeme(foundMeme);
-            document.title = `${foundMeme.title} - Peppy Memes`;
             setIsLoading(false);
             return;
           }
@@ -48,7 +48,6 @@ export function MemeView() {
             user_id: memeData.user_id
           };
           setMeme(loadedMeme);
-          document.title = `${loadedMeme.title} - Peppy Memes`;
         } else {
           navigate('/', { replace: true });
         }
@@ -86,10 +85,13 @@ export function MemeView() {
   if (!meme) return null;
 
   return (
-    <MemeModal
-      meme={meme}
-      isOpen={true}
-      onClose={() => navigate('/', { replace: true })}
-    />
+    <>
+      <MetaTags meme={meme} />
+      <MemeModal
+        meme={meme}
+        isOpen={true}
+        onClose={() => navigate('/', { replace: true })}
+      />
+    </>
   );
 }

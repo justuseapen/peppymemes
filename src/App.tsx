@@ -7,6 +7,7 @@ import { ResetPasswordForm } from './components/auth/ResetPasswordForm';
 import { ProfilePage } from './components/profile/ProfilePage';
 import { MemeView } from './components/MemeView';
 import { MemeEmbed } from './components/MemeEmbed';
+import { MetaTags } from './components/MetaTags';
 import { useMemeStore } from './store/useMemeStore';
 
 export function App() {
@@ -21,11 +22,15 @@ export function App() {
   const showHeader = !['/profile', '/auth/reset-password'].includes(location.pathname) &&
     !location.pathname.endsWith('/embed');
 
+  const isHomePage = location.pathname === '/';
+
   return (
     <>
       {showHeader && (
         <Header onUploadClick={() => setIsUploadModalOpen(true)} />
       )}
+
+      {isHomePage && <MetaTags isHomePage={true} />}
 
       <Routes>
         <Route
