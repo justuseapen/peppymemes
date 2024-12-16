@@ -1,98 +1,70 @@
-import React from 'react';
-import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { vi, describe, it, expect } from 'vitest';
+import { render, screen, waitFor } from '../../test/testUtils';
 import { MemeEmbed } from '../MemeEmbed';
-import { createMockMeme } from '../../test/factories';
-import { Meme } from '../../types/meme';
+import { supabase } from '../../config/supabase';
 
-const TEST_MEME_ID = '2ae1d9f9-44e2-4e79-96d2-be555cc0a5c3';
-const mockMeme = createMockMeme({
-  id: TEST_MEME_ID,
+const TEST_MEME = {
+  id: '123',
   title: 'Test Meme',
   image_url: 'https://example.com/meme.jpg',
-  tags: ['funny', 'test']
-});
-
-interface MockResponse {
-  data: Meme | null;
-  error: Error | null;
-}
-
-// Mock Supabase client
-const mockSupabaseResponse: Record<string, MockResponse> = {
-  success: { data: mockMeme, error: null },
-  error: { data: null, error: new Error('Failed to load meme') }
+  tags: ['funny', 'test'],
+  created_at: '2023-01-01',
+  user_id: 'user123',
+  favorite_count: 0,
+  view_count: 0,
+  share_count: 0,
+  download_count: 0
 };
-
-let currentMockResponse = mockSupabaseResponse.success;
-
-vi.mock('../../config/supabase', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          single: vi.fn(() => currentMockResponse)
-        }))
-      }))
-    }))
-  }
-}));
 
 describe('MemeEmbed', () => {
   beforeEach(() => {
-    document.title = 'Peppy Memes'; // Reset title
-    currentMockResponse = mockSupabaseResponse.success; // Default to success
-  });
-
-  afterEach(() => {
     vi.clearAllMocks();
   });
 
-  test('renders meme content when meme is found', async () => {
-    render(
-      <MemoryRouter initialEntries={[`/meme/${TEST_MEME_ID}/embed`]}>
-        <Routes>
-          <Route path="/meme/:id/embed" element={<MemeEmbed />} />
-        </Routes>
-      </MemoryRouter>
-    );
+  it('renders meme content when meme is found', async () => {
+    vi.mocked(supabase.from).mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: TEST_MEME, error: null })
+    } as any);
+
+    render(<MemeEmbed />);
 
     await waitFor(() => {
-      expect(screen.getByText('Test Meme')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Test Meme' })).toBeInTheDocument();
     });
+
     expect(screen.getByAltText('Test Meme')).toBeInTheDocument();
     expect(screen.getByText('funny')).toBeInTheDocument();
     expect(screen.getByText('test')).toBeInTheDocument();
   });
 
-  test('shows error when meme does not exist', async () => {
-    currentMockResponse = mockSupabaseResponse.error;
+  it('shows error when meme does not exist', async () => {
+    vi.mocked(supabase.from).mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Meme not found' } })
+    } as any);
 
-    render(
-      <MemoryRouter initialEntries={['/meme/non-existent-id/embed']}>
-        <Routes>
-          <Route path="/meme/:id/embed" element={<MemeEmbed />} />
-        </Routes>
-      </MemoryRouter>
-    );
+    render(<MemeEmbed />);
 
     await waitFor(() => {
-      expect(screen.getByText('Error: Failed to load meme')).toBeInTheDocument();
+      expect(screen.getByText('Error: Meme not found')).toBeInTheDocument();
     });
   });
 
-  test('updates document title when meme is found', async () => {
-    render(
-      <MemoryRouter initialEntries={[`/meme/${TEST_MEME_ID}/embed`]}>
-        <Routes>
-          <Route path="/meme/:id/embed" element={<MemeEmbed />} />
-        </Routes>
-      </MemoryRouter>
-    );
+  it('updates meta tags when meme is found', async () => {
+    vi.mocked(supabase.from).mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: TEST_MEME, error: null })
+    } as any);
+
+    render(<MemeEmbed />);
 
     await waitFor(() => {
-      expect(document.title).toBe('Test Meme - Peppy Memes Embed');
+      const title = document.querySelector('title');
+      expect(title?.textContent).toBe(`${TEST_MEME.title} - Peppy Memes`);
     });
   });
 });

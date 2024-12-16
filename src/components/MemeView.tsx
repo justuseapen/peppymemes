@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../config/supabase';
 import { Meme } from '../types/meme';
 import { MemeModal } from './MemeModal';
+import { MetaTags } from './MetaTags';
 
 export function MemeView() {
   const { id } = useParams<{ id: string }>();
@@ -32,7 +33,7 @@ export function MemeView() {
           throw new Error('Meme not found');
         }
 
-        setMeme({
+        const loadedMeme = {
           id: memeData.id,
           title: memeData.title,
           image_url: memeData.image_url,
@@ -43,7 +44,9 @@ export function MemeView() {
           view_count: memeData.view_count ?? 0,
           share_count: memeData.share_count ?? 0,
           download_count: memeData.download_count ?? 0
-        });
+        };
+
+        setMeme(loadedMeme);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load meme');
       }
@@ -76,5 +79,10 @@ export function MemeView() {
     );
   }
 
-  return <MemeModal meme={meme} onClose={handleClose} isOpen={true} />;
+  return (
+    <>
+      <MetaTags meme={meme} />
+      <MemeModal meme={meme} onClose={handleClose} isOpen={true} />
+    </>
+  );
 }

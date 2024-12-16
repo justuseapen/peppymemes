@@ -2,6 +2,7 @@ import React from 'react';
 import { render } from '@testing-library/react';
 import { vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 
 // Mock Supabase
 vi.mock('../config/supabase', () => ({
@@ -116,9 +117,11 @@ vi.mock('../components/profile/ProfilePage', () => ({
 function customRender(ui: React.ReactElement, { initialEntries = ['/'], ...options } = {}) {
   return render(ui, {
     wrapper: ({ children }) => (
-      <MemoryRouter initialEntries={initialEntries}>
-        {children}
-      </MemoryRouter>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={initialEntries}>
+          {children}
+        </MemoryRouter>
+      </HelmetProvider>
     ),
     ...options,
   });

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../config/supabase';
 import { Meme } from '../types/meme';
+import { MetaTags } from './MetaTags';
 
 export function MemeEmbed() {
   const { id } = useParams<{ id: string }>();
@@ -23,7 +24,7 @@ export function MemeEmbed() {
           .single();
 
         if (dbError) {
-          throw dbError;
+          throw new Error(dbError.message);
         }
 
         if (!memeData) {
@@ -44,7 +45,6 @@ export function MemeEmbed() {
         };
 
         setMeme(loadedMeme);
-        document.title = `${loadedMeme.title} - Peppy Memes Embed`;
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load meme';
         setError(`Error: ${errorMessage}`);
@@ -52,11 +52,6 @@ export function MemeEmbed() {
     }
 
     loadMeme();
-
-    // Cleanup title on unmount
-    return () => {
-      document.title = 'Peppy Memes';
-    };
   }, [id]);
 
   if (error) {
@@ -80,27 +75,30 @@ export function MemeEmbed() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
-      <div className="bg-white rounded-lg shadow-lg overflow-hidden max-w-2xl w-full">
-        <img
-          src={meme.image_url}
-          alt={meme.title}
-          className="w-full object-contain max-h-[60vh]"
-        />
-        <div className="p-4">
-          <h1 className="text-xl font-semibold mb-2">{meme.title}</h1>
-          <div className="flex flex-wrap gap-2">
-            {meme.tags.map((tag) => (
-              <span
-                key={tag}
-                className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-sm"
-              >
-                {tag}
-              </span>
-            ))}
+    <>
+      <MetaTags meme={meme} />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden max-w-2xl w-full">
+          <img
+            src={meme.image_url}
+            alt={meme.title}
+            className="w-full object-contain max-h-[60vh]"
+          />
+          <div className="p-4">
+            <h1 className="text-xl font-semibold mb-2">{meme.title}</h1>
+            <div className="flex flex-wrap gap-2">
+              {meme.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-sm"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
