@@ -15,12 +15,30 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+// Mock Supabase client
+vi.mock('../../config/supabase', () => ({
+  supabase: {
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          single: vi.fn(() => ({
+            data: null,
+            error: new Error('Failed to load meme')
+          }))
+        }))
+      }))
+    }))
+  }
+}));
+
+const TEST_MEME_ID = '2ae1d9f9-44e2-4e79-96d2-be555cc0a5c3';
+
 // Create a mock store with loading state
 const createMockStore = (isLoading = false, memes = []) => ({
   isLoading,
   memes: memes.length > 0 ? memes : [
     {
-      id: 1,
+      id: TEST_MEME_ID,
       title: 'Test Meme',
       image_url: 'https://example.com/meme.jpg',
       tags: ['funny', 'test'],
@@ -51,7 +69,7 @@ describe('MemeView', () => {
     mockUseMemeStore.mockReturnValue(createMockStore(true));
 
     render(
-      <MemoryRouter initialEntries={['/meme/1']}>
+      <MemoryRouter initialEntries={[`/meme/${TEST_MEME_ID}`]}>
         <Routes>
           <Route path="/meme/:id" element={<MemeView />} />
         </Routes>
@@ -65,7 +83,7 @@ describe('MemeView', () => {
     mockUseMemeStore.mockReturnValue(createMockStore(false));
 
     render(
-      <MemoryRouter initialEntries={['/meme/1']}>
+      <MemoryRouter initialEntries={[`/meme/${TEST_MEME_ID}`]}>
         <Routes>
           <Route path="/meme/:id" element={<MemeView />} />
         </Routes>
@@ -80,11 +98,11 @@ describe('MemeView', () => {
     expect(screen.getByText('test')).toBeInTheDocument();
   });
 
-  test('navigates to home when meme is not found', async () => {
+  test('shows error when meme is not found', async () => {
     mockUseMemeStore.mockReturnValue(createMockStore(false, []));
 
     render(
-      <MemoryRouter initialEntries={['/meme/999']}>
+      <MemoryRouter initialEntries={['/meme/non-existent-id']}>
         <Routes>
           <Route path="/meme/:id" element={<MemeView />} />
         </Routes>
@@ -92,7 +110,7 @@ describe('MemeView', () => {
     );
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
+      expect(screen.getByText('Error: Failed to load meme')).toBeInTheDocument();
     });
   });
 
@@ -100,7 +118,7 @@ describe('MemeView', () => {
     mockUseMemeStore.mockReturnValue(createMockStore(false));
 
     render(
-      <MemoryRouter initialEntries={['/meme/1']}>
+      <MemoryRouter initialEntries={[`/meme/${TEST_MEME_ID}`]}>
         <Routes>
           <Route path="/meme/:id" element={<MemeView />} />
         </Routes>

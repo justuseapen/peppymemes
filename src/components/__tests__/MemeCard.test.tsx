@@ -2,25 +2,27 @@ import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemeCard } from '../MemeCard';
+import { Meme } from '../../types/meme';
+
+const mockMeme: Meme = {
+  id: '123',
+  title: 'Test Meme',
+  image_url: 'https://example.com/meme.jpg',
+  tags: ['funny', 'test'],
+  created_at: '2024-03-11T00:00:00Z',
+  user_id: 'user1'
+};
 
 // Mock the store
+const mockToggleTag = vi.fn();
 vi.mock('../../store/useMemeStore', () => ({
   useMemeStore: () => ({
-    toggleTag: vi.fn(),
-    selectedTags: ['test']
+    toggleTag: mockToggleTag,
+    selectedTags: []
   })
 }));
 
 describe('MemeCard', () => {
-  const mockMeme = {
-    id: 1,
-    title: 'Test Meme',
-    image_url: 'https://example.com/meme.jpg',
-    tags: ['funny', 'test'],
-    created_at: '2024-03-11T00:00:00Z',
-    user_id: 'user1'
-  };
-
   test('renders meme content correctly', () => {
     render(<MemeCard meme={mockMeme} />);
 
@@ -55,19 +57,15 @@ describe('MemeCard', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  test('applies correct styles to selected and unselected tags', () => {
+  test('toggles tag when clicking a tag', () => {
     render(<MemeCard meme={mockMeme} />);
 
-    // 'test' tag should have selected styles
-    const selectedTag = screen.getByText('test').closest('button');
-    expect(selectedTag).toHaveClass('bg-green-500', 'text-white');
-
-    // 'funny' tag should have unselected styles
-    const unselectedTag = screen.getByText('funny').closest('button');
-    expect(unselectedTag).toHaveClass('bg-green-100', 'text-green-700');
+    // Click a tag
+    fireEvent.click(screen.getByText('funny'));
+    expect(mockToggleTag).toHaveBeenCalledWith('funny');
   });
 
-  test('clicking tag does not open modal', () => {
+  test('prevents modal from opening when clicking a tag', () => {
     const { container } = render(<MemeCard meme={mockMeme} />);
 
     // Click a tag

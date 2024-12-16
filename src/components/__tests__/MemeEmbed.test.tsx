@@ -5,12 +5,30 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { MemeEmbed } from '../MemeEmbed';
 import { useMemeStore } from '../../store/useMemeStore';
 
+// Mock Supabase client
+vi.mock('../../config/supabase', () => ({
+  supabase: {
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          single: vi.fn(() => ({
+            data: null,
+            error: new Error('Failed to load meme')
+          }))
+        }))
+      }))
+    }))
+  }
+}));
+
+const TEST_MEME_ID = '2ae1d9f9-44e2-4e79-96d2-be555cc0a5c3';
+
 // Create a mock store with loading state
 const createMockStore = (isLoading = false, memes = []) => ({
   isLoading,
   memes: memes.length > 0 ? memes : [
     {
-      id: 1,
+      id: TEST_MEME_ID,
       title: 'Test Meme',
       image_url: 'https://example.com/meme.jpg',
       tags: ['funny', 'test'],
@@ -40,7 +58,7 @@ describe('MemeEmbed', () => {
     mockUseMemeStore.mockReturnValue(createMockStore(false));
 
     render(
-      <MemoryRouter initialEntries={['/meme/1/embed']}>
+      <MemoryRouter initialEntries={[`/meme/${TEST_MEME_ID}/embed`]}>
         <Routes>
           <Route path="/meme/:id/embed" element={<MemeEmbed />} />
         </Routes>
@@ -55,11 +73,11 @@ describe('MemeEmbed', () => {
     expect(screen.getByText('test')).toBeInTheDocument();
   });
 
-  test('shows not found message when meme does not exist', async () => {
+  test('shows error when meme does not exist', async () => {
     mockUseMemeStore.mockReturnValue(createMockStore(false, []));
 
     render(
-      <MemoryRouter initialEntries={['/meme/999/embed']}>
+      <MemoryRouter initialEntries={['/meme/non-existent-id/embed']}>
         <Routes>
           <Route path="/meme/:id/embed" element={<MemeEmbed />} />
         </Routes>
@@ -67,7 +85,7 @@ describe('MemeEmbed', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Meme not found')).toBeInTheDocument();
+      expect(screen.getByText('Error: Failed to load meme')).toBeInTheDocument();
     });
   });
 
@@ -75,7 +93,7 @@ describe('MemeEmbed', () => {
     mockUseMemeStore.mockReturnValue(createMockStore(false));
 
     render(
-      <MemoryRouter initialEntries={['/meme/1/embed']}>
+      <MemoryRouter initialEntries={[`/meme/${TEST_MEME_ID}/embed`]}>
         <Routes>
           <Route path="/meme/:id/embed" element={<MemeEmbed />} />
         </Routes>

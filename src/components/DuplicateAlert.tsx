@@ -23,7 +23,11 @@ export function DuplicateAlert({ duplicateOf, onClose }: DuplicateAlertProps) {
             <AlertTriangle size={24} />
             <h3 className="text-lg font-semibold">Duplicate Detected</h3>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+            aria-label="Close modal"
+          >
             <X size={20} />
           </button>
         </div>

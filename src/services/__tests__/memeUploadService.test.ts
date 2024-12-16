@@ -8,7 +8,7 @@ vi.mock('../../utils/imageUtils');
 describe('MemeUploadService', () => {
   let service: MemeUploadService;
   const mockMeme: MemeMetadata = {
-    id: 1,
+    id: '1',
     title: 'Test Meme',
     tags: ['funny', 'test'],
     image_url: 'https://example.com/meme.jpg',
