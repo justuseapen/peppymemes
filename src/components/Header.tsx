@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ImagePlus, Search, LogIn, LogOut, User, Menu, X, Plus } from 'lucide-react';
+import { ImagePlus, Search, LogIn, LogOut, User, Menu, X, Plus, Code } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMemeStore } from '../store/useMemeStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -69,6 +69,14 @@ export function Header({ onUploadClick }: HeaderProps) {
 
             {/* Desktop Actions */}
             <div className="hidden md:flex items-center space-x-4">
+              <Link
+                to="/developers"
+                className="flex items-center space-x-2 text-white hover:text-green-100"
+              >
+                <Code size={20} />
+                <span>Developers</span>
+              </Link>
+
               <button
                 onClick={handleUploadClick}
                 className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg transition-colors"
@@ -120,6 +128,15 @@ export function Header({ onUploadClick }: HeaderProps) {
           {isMenuOpen && (
             <div className="absolute top-full left-0 right-0 bg-green-500 shadow-lg md:hidden z-50">
               <div className="px-2 py-2 space-y-2 border-t border-green-400">
+                <Link
+                  to="/developers"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center space-x-2 w-full bg-green-600 hover:bg-green-700 active:bg-green-800 text-white px-4 py-2 rounded-lg transition-colors touch-manipulation"
+                >
+                  <Code size={20} />
+                  <span>Developers</span>
+                </Link>
+
                 {user ? (
                   <>
                     <Link

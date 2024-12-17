@@ -166,3 +166,65 @@ src/
    - Follow ARIA guidelines
    - Implement proper color contrast
    - Handle screen readers
+
+### Developer API
+
+The Peppy Memes API allows developers to programmatically access our meme database with the following features:
+
+1. Authentication & Access
+   - API key-based authentication
+   - JWT tokens for secure requests
+   - CORS-enabled endpoints
+   - SSL encryption for all API traffic
+
+2. Available Endpoints
+   - GET /api/v1/memes - List memes with pagination
+   - GET /api/v1/memes/{id} - Get specific meme by ID
+   - GET /api/v1/memes/search - Search memes by title, tags
+   - GET /api/v1/tags - List all available tags
+   - GET /api/v1/tags/{tag}/memes - Get memes by specific tag
+
+3. Rate Limiting & Pricing Tiers
+   - Free Tier
+     - 100 requests per day
+     - Basic search functionality
+     - Standard response time
+
+   - Developer Tier ($29/month)
+     - 10,000 requests per day
+     - Advanced search capabilities
+     - Faster response time
+     - Email support
+
+   - Enterprise Tier (Custom pricing)
+     - Unlimited requests
+     - Priority response time
+     - Dedicated support
+     - Custom endpoints
+     - SLA guarantees
+
+4. API Response Format
+   ```json
+   {
+     "data": {},
+     "metadata": {
+       "page": 1,
+       "per_page": 20,
+       "total": 100
+     },
+     "status": 200
+   }
+   ```
+
+5. Error Handling
+   - Standard HTTP status codes
+   - Detailed error messages
+   - Rate limit headers
+   - Request ID for support
+
+6. Developer Resources
+   - Interactive API documentation
+   - SDK libraries for popular languages
+   - Code examples
+   - Testing environment
+   - Rate limit monitoring dashboard

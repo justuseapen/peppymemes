@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { supabase } from '../../config/supabase';
-import { User, Settings } from 'lucide-react';
+import { User, Settings, Code2 } from 'lucide-react';
 import { Meme } from '../../types/meme';
 import { MemeCard } from '../MemeCard';
+import { DeveloperSection } from './DeveloperSection';
 
 export function ProfilePage() {
   const { user, setError } = useAuthStore();
@@ -124,35 +125,16 @@ export function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-12 px-4">
-      <div className="max-w-6xl mx-auto space-y-8">
-        {/* Profile Settings Section */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="bg-green-500 px-6 py-4">
-            <div className="flex items-center space-x-4">
-              <div className="bg-white p-2 rounded-full">
-                <User className="h-6 w-6 text-green-500" />
-              </div>
-              <h1 className="text-xl font-semibold text-white">Profile Settings</h1>
-            </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto space-y-8">
+        {/* Profile Section */}
+        <div className="bg-white rounded-lg shadow p-6 space-y-6">
+          <div className="flex items-center gap-2">
+            <User className="w-5 h-5" />
+            <h2 className="text-xl font-semibold">Profile</h2>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <input
-                type="email"
-                value={user.email}
-                disabled
-                className="mt-1 block w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm text-gray-500"
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Email cannot be changed
-              </p>
-            </div>
-
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="displayName" className="block text-sm font-medium text-gray-700">
                 Display Name
@@ -162,66 +144,47 @@ export function ProfilePage() {
                 id="displayName"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Enter your display name"
-                required
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
-              <p className="mt-1 text-sm text-gray-500">
-                This name will be displayed to other users
-              </p>
             </div>
-
-            {successMessage && (
-              <div className="bg-green-50 border border-green-200 rounded-md p-4">
-                <p className="text-green-600">{successMessage}</p>
-              </div>
-            )}
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-green-300 disabled:cursor-not-allowed"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
-              {isSubmitting ? (
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Saving...</span>
-                </div>
-              ) : (
-                'Save Changes'
-              )}
+              {isSubmitting ? 'Saving...' : 'Save Changes'}
             </button>
+
+            {successMessage && (
+              <div className="text-green-600 text-sm">{successMessage}</div>
+            )}
           </form>
         </div>
 
-        {/* Favorited Memes Section */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="bg-green-500 px-6 py-4">
-            <div className="flex items-center space-x-4">
-              <div className="bg-white p-2 rounded-full">
-                <Settings className="h-6 w-6 text-green-500" />
-              </div>
-              <h2 className="text-xl font-semibold text-white">My Favorite Memes</h2>
-            </div>
+        {/* Developer Section */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Code2 className="w-5 h-5" />
+            <h2 className="text-xl font-semibold">Developer</h2>
           </div>
+          <DeveloperSection />
+        </div>
 
-          <div className="p-6">
-            {isLoadingFavorites ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
-              </div>
-            ) : favoritedMemes.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">
-                You haven't favorited any memes yet. Browse the homepage to find memes you like!
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {favoritedMemes.map((meme) => (
-                  <MemeCard key={meme.id} meme={meme} />
-                ))}
-              </div>
-            )}
-          </div>
+        {/* Favorites Section */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Favorites</h2>
+          {isLoadingFavorites ? (
+            <div className="text-center py-4">Loading favorites...</div>
+          ) : favoritedMemes.length === 0 ? (
+            <div className="text-center py-4 text-gray-500">No favorites yet</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {favoritedMemes.map((meme) => (
+                <MemeCard key={meme.id} meme={meme} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

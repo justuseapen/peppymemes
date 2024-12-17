@@ -11,6 +11,7 @@ import { MetaTags } from './components/MetaTags';
 import { useMemeStore } from './store/useMemeStore';
 import { Layout } from './components/Layout';
 import { useAppInitialization } from './hooks/useAppInitialization';
+import { DeveloperPage } from './pages/DeveloperPage';
 
 export function App() {
   const { isLoading, error: memeError } = useMemeStore();
@@ -70,6 +71,7 @@ export function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/meme/:id" element={<MemeView />} />
         <Route path="/meme/:id/embed" element={<MemeEmbed />} />
+        <Route path="/developers" element={<DeveloperPage />} />
       </Routes>
 
       {isUploadModalOpen && (

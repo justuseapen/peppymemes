@@ -61,9 +61,18 @@ describe('ProfilePage', () => {
   test('renders profile page with user information', () => {
     renderComponent();
 
-    expect(screen.getByText('Profile Settings')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('test@example.com')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('testuser')).toBeInTheDocument();
+    // Check for the new section headings
+    expect(screen.getByText('Profile')).toBeInTheDocument();
+    expect(screen.getByText('Developer')).toBeInTheDocument();
+    expect(screen.getByText('Favorites')).toBeInTheDocument();
+
+    // Check for the display name input
+    expect(screen.getByLabelText('Display Name')).toHaveValue('testuser');
+
+    // Check for API key section
+    expect(screen.getByText('API Keys')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('API Key Name (required)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /create key/i })).toBeInTheDocument();
   });
 
   test('handles successful profile update', async () => {
