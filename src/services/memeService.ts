@@ -114,3 +114,32 @@ export async function toggleFavorite(meme: Meme, user: User): Promise<void> {
     throw error;
   }
 }
+
+export async function deleteMeme(memeId: string): Promise<void> {
+  try {
+    // Delete the meme record
+    const { error: deleteError } = await supabase
+      .from('memes')
+      .delete()
+      .eq('id', memeId);
+
+    if (deleteError) {
+      console.error('Error deleting meme:', deleteError);
+      throw new Error('Failed to delete meme');
+    }
+
+    // Delete the meme image from storage
+    const { error: storageError } = await supabase
+      .storage
+      .from('memes')
+      .remove([`memes/${memeId}`]);
+
+    if (storageError) {
+      console.error('Error deleting meme image:', storageError);
+      // Don't throw here since the database record is already deleted
+    }
+  } catch (error) {
+    console.error('Error in deleteMeme:', error);
+    throw error;
+  }
+}

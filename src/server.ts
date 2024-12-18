@@ -4,6 +4,8 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import memeRoutes from './services/api/v1/routes/memes';
 import tagRoutes from './services/api/v1/routes/tags';
+import { handler as uploadMemeHandler } from '../functions/api-v1-memes-post';
+import { HandlerContext } from '@netlify/functions';
 
 const app = express();
 const port = process.env.PORT || 8888;
@@ -11,6 +13,7 @@ const port = process.env.PORT || 8888;
 // Get the directory name for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const distPath = join(__dirname, '../dist');
 
 // Middleware
 app.use(cors());
@@ -37,9 +40,53 @@ app.get('/api/v1', (req, res) => {
   });
 });
 
+// Handle POST /api/v1/memes using the Netlify function
+app.post('/api/v1/memes', async (req, res) => {
+  try {
+    const context: HandlerContext = {
+      awsRequestId: '1234567890',
+      callbackWaitsForEmptyEventLoop: true,
+      functionName: 'api-v1-memes-post',
+      functionVersion: '$LATEST',
+      invokedFunctionArn: 'arn:aws:lambda:us-east-1:123456789012:function:api-v1-memes-post',
+      logGroupName: '/aws/lambda/api-v1-memes-post',
+      logStreamName: '2021/01/01/[$LATEST]abcdef123456',
+      memoryLimitInMB: '128',
+      done: () => { },
+      fail: () => { },
+      getRemainingTimeInMillis: () => 0,
+      succeed: () => { },
+    };
+
+    const result = await uploadMemeHandler({
+      httpMethod: 'POST',
+      headers: req.headers as Record<string, string>,
+      body: JSON.stringify(req.body),
+      path: req.path,
+      queryStringParameters: req.query as Record<string, string>,
+      rawUrl: req.url || '',
+      rawQuery: req.query ? new URLSearchParams(req.query as Record<string, string>).toString() : '',
+      isBase64Encoded: false,
+      multiValueHeaders: {},
+      multiValueQueryStringParameters: {}
+    }, context);
+
+    if (!result) {
+      throw new Error('Handler returned no result');
+    }
+
+    res.status(result.statusCode).set(result.headers || {}).send(result.body);
+  } catch (error) {
+    console.error('Error in upload handler:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 app.use('/api/v1/memes', (req, res, next) => {
-  console.log('Memes route hit');
-  next();
+  if (req.method !== 'POST') {
+    console.log('Memes route hit');
+    next();
+  }
 }, memeRoutes);
 
 app.use('/api/v1/tags', (req, res, next) => {
@@ -48,12 +95,21 @@ app.use('/api/v1/tags', (req, res, next) => {
 }, tagRoutes);
 
 // Serve static files from the dist directory
-app.use(express.static(join(__dirname, '../../dist')));
+app.use(express.static(distPath));
 
 // Serve index.html for all other routes (SPA support)
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
-    res.sendFile(join(__dirname, '../../dist/index.html'));
+    console.log('Serving index.html from:', join(distPath, 'index.html'));
+    res.sendFile(join(distPath, 'index.html'), (err) => {
+      if (err) {
+        console.error('Error sending index.html:', err);
+        res.status(500).json({
+          error: 'Internal Server Error',
+          message: 'Failed to serve index.html'
+        });
+      }
+    });
   } else {
     res.status(404).json({
       error: 'Not Found',
@@ -81,6 +137,7 @@ try {
     console.log('Available endpoints:');
     console.log(`  - GET http://localhost:${port}/api/v1`);
     console.log(`  - GET http://localhost:${port}/api/v1/memes`);
+    console.log(`  - POST http://localhost:${port}/api/v1/memes`);
     console.log(`  - GET http://localhost:${port}/api/v1/tags`);
     console.log('===================\n');
   });

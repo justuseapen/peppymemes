@@ -19,7 +19,7 @@
   command = "vite"
 
 [dev]
-  command = "vite"
+  command = "npm run dev"
   targetPort = 5173
   port = 8888
   framework = "#custom"
@@ -30,6 +30,48 @@
   node_bundler = "esbuild"
 
 [[redirects]]
+  from = "/api/v1/memes"
+  to = "/.netlify/functions/api-v1-memes-post"
+  status = 200
+  force = true
+  methods = ["POST"]
+
+[[redirects]]
+  from = "/api/v1/memes"
+  to = "/.netlify/functions/api-v1-memes-get"
+  status = 200
+  force = true
+  methods = ["GET"]
+
+[[redirects]]
+  from = "/api/v1/memes/:id"
+  to = "/.netlify/functions/api-v1-memes-get-by-id/:id"
+  status = 200
+  force = true
+  methods = ["GET"]
+
+[[redirects]]
+  from = "/api/v1/memes/search"
+  to = "/.netlify/functions/api-v1-memes-search"
+  status = 200
+  force = true
+  methods = ["GET"]
+
+[[redirects]]
+  from = "/api/v1/tags"
+  to = "/.netlify/functions/api-v1-tags"
+  status = 200
+  force = true
+  methods = ["GET"]
+
+[[redirects]]
+  from = "/api/v1/tags/:tag/memes"
+  to = "/.netlify/functions/api-v1-tags-memes/:tag"
+  status = 200
+  force = true
+  methods = ["GET"]
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
@@ -38,5 +80,5 @@
   for = "/*"
   [headers.values]
     Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Headers = "Content-Type"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, x-api-key"
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"

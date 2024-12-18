@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { X, Share2, Link, Code, Eye, Download, Heart } from 'lucide-react';
+import { X, Share2, Link, Code, Eye, Download, Heart, Trash2 } from 'lucide-react';
 import { Meme, MemeStats, StatType } from '../types/meme';
 import { FavoriteButton } from './FavoriteButton';
 import { statsService } from '../services/statsService';
 import { downloadService } from '../services/downloadService';
+import { useAuthStore } from '../store/useAuthStore';
+import { deleteMeme } from '../services/memeService';
+import { useNavigate } from 'react-router-dom';
 
 interface MemeModalProps {
   meme: Meme;
@@ -27,7 +30,10 @@ export function MemeModal({ meme, isOpen, onClose }: MemeModalProps) {
     download_count: meme.download_count ?? 0
   });
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { isAdmin } = useAuthStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isOpen) {
@@ -91,6 +97,24 @@ export function MemeModal({ meme, isOpen, onClose }: MemeModalProps) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this meme? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await deleteMeme(meme.id);
+      onClose();
+      navigate('/');
+      // Optionally show a success message or trigger a refresh of the meme list
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete meme');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div
       role="dialog"
@@ -119,6 +143,16 @@ export function MemeModal({ meme, isOpen, onClose }: MemeModalProps) {
         >
           <h3 id="modal-title" className="text-lg font-semibold truncate pr-4 leading-tight">{meme.title}</h3>
           <div className="flex items-center gap-2">
+            {isAdmin && (
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="p-1 -m-1 text-red-500 hover:text-red-700 touch-manipulation disabled:opacity-50"
+                title="Delete meme"
+              >
+                <Trash2 size={20} />
+              </button>
+            )}
             <FavoriteButton
               memeId={meme.id}
               isFavorited={meme.is_favorited}
