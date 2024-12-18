@@ -47,11 +47,15 @@ A modern meme sharing platform built with React and TypeScript.
 ```
 src/
   components/        # React components
+  pages/            # Page components
   services/         # Business logic and API calls
   store/            # Zustand stores
   types/            # TypeScript types and interfaces
   test/            # Test utilities and factories
   config/          # Configuration files
+  hooks/           # Custom React hooks
+  utils/           # Utility functions
+  routes/          # Route definitions
 ```
 
 ### Testing Strategy
@@ -169,20 +173,27 @@ src/
 
 ### Developer API
 
-The Peppy Memes API allows developers to programmatically access our meme database with the following features:
+The Peppy Memes API provides both API key and JWT token authentication methods for accessing our meme database.
 
-1. Authentication & Access
-   - API key-based authentication
-   - JWT tokens for secure requests
-   - CORS-enabled endpoints
-   - SSL encryption for all API traffic
+1. Authentication Methods
+   - API Key Authentication: Use `X-API-Key` header for public API access
+   - JWT Token Authentication: Use `Authorization: Bearer <token>` header for user-specific operations
 
 2. Available Endpoints
+
+   **Memes**
    - GET /api/v1/memes - List memes with pagination
    - GET /api/v1/memes/{id} - Get specific meme by ID
    - GET /api/v1/memes/search - Search memes by title, tags
+   - POST /api/v1/memes - Create a new meme
+
+   **Tags**
    - GET /api/v1/tags - List all available tags
    - GET /api/v1/tags/{tag}/memes - Get memes by specific tag
+
+   **Favorites**
+   - POST /api/v1/memes/{id}/favorite - Favorite a meme
+   - DELETE /api/v1/memes/{id}/favorite - Unfavorite a meme
 
 3. Rate Limiting & Pricing Tiers
    - Free Tier
@@ -196,35 +207,58 @@ The Peppy Memes API allows developers to programmatically access our meme databa
      - Faster response time
      - Email support
 
-   - Enterprise Tier (Custom pricing)
-     - Unlimited requests
-     - Priority response time
-     - Dedicated support
-     - Custom endpoints
-     - SLA guarantees
+4. Image Upload
+   - Supported formats: JPEG, PNG, GIF
+   - Maximum file size: 10MB
+   - Files are stored securely in Supabase storage
+   - Automatic optimization for different screen sizes
 
-4. API Response Format
+5. API Response Format
    ```json
    {
-     "data": {},
+     "data": {
+       "id": "uuid",
+       "title": "string",
+       "tags": ["string"],
+       "image_url": "string",
+       "created_at": "timestamp",
+       "user_id": "string",
+       "favorite_count": 0,
+       "view_count": 0,
+       "share_count": 0,
+       "download_count": 0,
+       "is_favorited": false
+     },
      "metadata": {
        "page": 1,
        "per_page": 20,
        "total": 100
-     },
-     "status": 200
+     }
    }
    ```
 
-5. Error Handling
+6. Error Handling
    - Standard HTTP status codes
    - Detailed error messages
-   - Rate limit headers
+   - Rate limit headers (`X-RateLimit-Limit`)
    - Request ID for support
 
-6. Developer Resources
+7. Creating a Meme
+   ```json
+   POST /api/v1/memes
+   Content-Type: application/json
+   Authorization: Bearer <token>
+
+   {
+     "title": "string",
+     "imageData": "base64 string",
+     "contentType": "image/jpeg|image/png|image/gif",
+     "tags": ["string"]
+   }
+   ```
+
+8. Developer Resources
    - Interactive API documentation
-   - SDK libraries for popular languages
-   - Code examples
-   - Testing environment
-   - Rate limit monitoring dashboard
+   - Rate limit monitoring in response headers
+   - Test environment available
+   - Comprehensive error messages

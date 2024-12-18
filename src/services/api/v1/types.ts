@@ -1,3 +1,4 @@
+import { User } from '@supabase/supabase-js';
 import { Request } from 'express';
 
 export interface ApiKey {
@@ -5,16 +6,21 @@ export interface ApiKey {
   key: string;
   name: string;
   user_id: string;
-  tier: 'free' | 'developer' | 'enterprise';
+  tier: 'free' | 'developer';
+  requestsPerDay: number;
+  requestCount: number;
   created_at: string;
-  last_used: string | null;
-  is_active: boolean;
 }
 
+// Extend Express Request
 declare global {
   namespace Express {
     interface Request {
+      user?: User;
       apiKey?: ApiKey;
     }
   }
 }
+
+// Export types for use in tests
+export type ExtendedRequest = Request;

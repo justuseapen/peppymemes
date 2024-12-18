@@ -1,12 +1,23 @@
 import { Router, Request, Response } from 'express';
 import { supabase } from '../../../../config/server';
-import { authenticateApiKey } from '../middleware/auth';
+import { authenticateApiKey, authenticateJWT } from '../middleware/auth';
 import { RequestHandler } from 'express';
 
 // Export handlers for testing
 export const handlers = {
   async listMemes(req: Request, res: Response) {
     try {
+      // Check rate limit
+      if (req.apiKey) {
+        if (req.apiKey.requestCount >= req.apiKey.requestsPerDay) {
+          return res.status(403).json({ error: 'Rate limit exceeded' });
+        }
+      }
+
+      // Set rate limit headers
+      const limit = req.apiKey?.tier === 'developer' ? '10000' : '100';
+      res.setHeader('X-RateLimit-Limit', limit);
+
       const page = parseInt(req.query.page as string) || 1;
       const per_page = parseInt(req.query.per_page as string) || 20;
       const sort_by = req.query.sort_by || 'newest';
@@ -119,6 +130,68 @@ export const handlers = {
       console.error('Error searching memes:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
+  },
+
+  async addFavorite(req: Request, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { data: favorite, error } = await supabase
+        .from('favorites')
+        .insert({
+          user_id: req.user.id,
+          meme_id: req.params.id
+        })
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === '23505') { // Unique constraint violation
+          return res.status(400).json({ error: 'Meme already favorited' });
+        }
+        throw error;
+      }
+
+      res.json({ data: favorite });
+    } catch (error) {
+      console.error('Error adding favorite:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async removeFavorite(req: Request, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      // First check if the favorite exists
+      const { count } = await supabase
+        .from('favorites')
+        .select('*', { count: 'exact' })
+        .eq('meme_id', req.params.id)
+        .eq('user_id', req.user.id);
+
+      if (count === 0) {
+        return res.status(404).json({ error: 'Favorite not found' });
+      }
+
+      // If it exists, delete it
+      const { error } = await supabase
+        .from('favorites')
+        .delete()
+        .eq('meme_id', req.params.id)
+        .eq('user_id', req.user.id);
+
+      if (error) throw error;
+
+      res.json({ message: 'Favorite removed successfully' });
+    } catch (error) {
+      console.error('Error removing favorite:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   }
 };
 
@@ -128,8 +201,12 @@ const router = Router();
 router.use(authenticateApiKey as RequestHandler);
 
 // Routes
-router.get('/search', handlers.searchMemes);
+router.get('/search', handlers.searchMemes as RequestHandler);
 router.get('/:id', handlers.getMeme as RequestHandler);
 router.get('/', handlers.listMemes as RequestHandler);
+
+// Favorite routes (require JWT auth)
+router.post('/:id/favorite', authenticateJWT as RequestHandler, handlers.addFavorite as RequestHandler);
+router.delete('/:id/favorite', authenticateJWT as RequestHandler, handlers.removeFavorite as RequestHandler);
 
 export default router;

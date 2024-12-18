@@ -2,62 +2,84 @@ import { Request, Response, NextFunction } from 'express';
 import { supabase } from '../../../../config/server';
 import { ApiKey } from '../types';
 
-export async function authenticateApiKey(
+declare global {
+  var API_KEYS: {
+    [key: string]: ApiKey;
+  };
+}
+
+export const authenticateJWT = async (
   req: Request,
   res: Response,
   next: NextFunction
-) {
-  const apiKey = req.headers['x-api-key'];
-  console.log('Authenticating API key:', apiKey);
-
-  if (!apiKey) {
-    console.log('No API key provided');
-    return res.status(401).json({
-      error: 'API key is required. Please include it in the X-API-Key header.'
-    });
-  }
-
+) => {
   try {
-    console.log('Querying database for API key');
-    // Get API key from database
-    const { data: apiKeyData, error } = await supabase
-      .from('api_keys')
-      .select('*')
-      .eq('key', apiKey)
-      .single();
+    const authHeader = req.headers.authorization;
 
-    console.log('Database response:', { data: apiKeyData, error });
-
-    if (error || !apiKeyData) {
-      console.log('API key not found or error:', error);
+    if (!authHeader) {
       return res.status(401).json({
+        error: 'Authorization header required'
+      });
+    }
+
+    if (!authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        error: 'Invalid authorization format'
+      });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      return res.status(401).json({
+        error: 'Invalid token'
+      });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error('Error authenticating JWT:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const authenticateApiKey = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const apiKey = req.headers['x-api-key'] as string;
+
+    if (!apiKey) {
+      return res.status(401).json({
+        error: 'API key is required. Please include it in the X-API-Key header.'
+      });
+    }
+
+    const keyData = global.API_KEYS[apiKey];
+    if (!keyData) {
+      return res.status(500).json({
         error: 'Invalid API key'
       });
     }
 
-    if (!apiKeyData.is_active) {
-      console.log('API key is inactive');
-      return res.status(401).json({
-        error: 'API key is inactive'
+    // Track API key usage
+    keyData.requestCount = (keyData.requestCount || 0) + 1;
+
+    // Check rate limit
+    if (keyData.requestCount >= keyData.requestsPerDay) {
+      return res.status(403).json({
+        error: 'Rate limit exceeded'
       });
     }
 
-    console.log('API key is valid, updating last_used timestamp');
-    // Update last used timestamp
-    await supabase
-      .from('api_keys')
-      .update({ last_used: new Date().toISOString() })
-      .eq('id', apiKeyData.id);
-
-    // Attach API key data to request
-    req.apiKey = apiKeyData as ApiKey;
-    console.log('Authentication successful');
-
+    req.apiKey = keyData;
     next();
   } catch (error) {
     console.error('Error authenticating API key:', error);
-    res.status(500).json({
-      error: 'Internal server error'
-    });
+    res.status(500).json({ error: 'Internal server error' });
   }
-}
+};
